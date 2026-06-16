@@ -1,0 +1,50 @@
+<ul class="nav flex-column">
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}" href="{% url 'admin_dashboard' %}">
+            <i class="bi bi-speedometer2"></i>
+            Dashboard
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'admin_users_list' %}">
+            <i class="bi bi-people"></i>
+            Foydalanuvchilar
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'group' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'admin_groups_list' %}">
+            <i class="bi bi-collection"></i>
+            Guruhlar
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'statistics' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'admin_students_statistics' %}">
+            <i class="bi bi-graph-up"></i>
+            O'quvchilar Statistikasi
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'message' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'admin_message_create' %}">
+            <i class="bi bi-chat-dots"></i>
+            Xabar Yuborish
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'coins_reset' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'admin_coins_reset' %}">
+            <i class="bi bi-trash"></i>
+            Coinslarni Tozalash
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'admission' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'admin_admission_requests' %}">
+            <i class="bi bi-send-check"></i>
+            Qabul So'rovlari
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="/admin/">
+            <i class="bi bi-gear"></i>
+            Django Admin
+        </a>
+    </li>
+</ul>

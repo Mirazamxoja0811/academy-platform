@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Test yaratish - Teacher{% endblock %}
+{% block sidebar %}
+{% include 'includes/teacher_sidebar.html' %}
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Test yaratish</h5></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3"><label class="form-label">Sarlavha *</label>{{ test_form.title }}</div>
+                    <div class="mb-3"><label class="form-label">Tavsif</label>{{ test_form.description }}</div>
+                    <div class="row mb-3">
+                        <div class="col-md-4"><label class="form-label">Guruh *</label>{{ test_form.group }}</div>
+                        <div class="col-md-4"><label class="form-label">Vaqt (daqiqa) *</label>{{ test_form.duration }}</div>
+                        <div class="col-md-4"><label class="form-label">Tugash muddati</label>{{ test_form.deadline }}</div>
+                    </div>
+                    <hr>
+                    <h5 class="mb-3">Savollar</h5>
+                    {{ question_formset.management_form }}
+                    {% for form in question_formset %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6>Savol {{ forloop.counter }}</h6>
+                            <div class="mb-2"><label class="form-label">Savol matni</label>{{ form.question_text }}</div>
+                            <div class="row mb-2">
+                                <div class="col-md-6"><label class="form-label">A variant</label>{{ form.option_a }}</div>
+                                <div class="col-md-6"><label class="form-label">B variant</label>{{ form.option_b }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-6"><label class="form-label">C variant</label>{{ form.option_c }}</div>
+                                <div class="col-md-6"><label class="form-label">D variant</label>{{ form.option_d }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6"><label class="form-label">To'g'ri javob</label>{{ form.correct_answer }}</div>
+                                <div class="col-md-6"><label class="form-label">Ball</label>{{ form.marks }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-success">Saqlash</button>
+                    <a href="{% url 'teacher_tests_list' %}" class="btn btn-secondary">Bekor qilish</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

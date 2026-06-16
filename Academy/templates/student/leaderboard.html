@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Leaderboard - Student{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/student_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Top O'quvchilar</h2>
+        <p class="text-muted mb-0">{{ student.group.name }} guruhi</p>
+    </div>
+    {% if student_position %}
+    <div class="text-end">
+        <h3 class="fw-bold mb-0">#{{ student_position }}</h3>
+        <small class="text-muted">Sizning o'rningiz</small>
+    </div>
+    {% endif %}
+</div>
+
+{% if top_students %}
+<div class="row g-3 mb-4">
+    {% for top_student in top_students %}
+    <div class="col-md-4">
+        <div class="card h-100 {% if top_student == student %}border-primary{% else %}{% if forloop.counter == 1 %}border-warning{% elif forloop.counter == 2 %}border-secondary{% else %}border-info{% endif %}{% endif %}" style="border-width: 3px;">
+            <div class="card-body text-center">
+                <div class="position-relative d-inline-block mb-3">
+                    <div class="{% if top_student == student %}bg-primary{% else %}bg-secondary{% endif %} text-white rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 100px; height: 100px; font-size: 2.5rem;">
+                        {{ top_student.user.first_name.0 }}{{ top_student.user.last_name.0 }}
+                    </div>
+                    <div class="position-absolute top-0 start-0 translate-middle">
+                        {% if forloop.counter == 1 %}
+                        <span class="badge bg-warning rounded-circle p-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-trophy-fill fs-4"></i>
+                        </span>
+                        {% elif forloop.counter == 2 %}
+                        <span class="badge bg-secondary rounded-circle p-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-award-fill fs-4"></i>
+                        </span>
+                        {% else %}
+                        <span class="badge bg-info rounded-circle p-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-star-fill fs-4"></i>
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if top_student == student %}
+                    <div class="position-absolute bottom-0 end-0">
+                        <span class="badge bg-primary fs-6">Siz</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <h5 class="fw-bold">{{ top_student.user.get_full_name }}</h5>
+                <p class="text-muted mb-2">{{ top_student.student_id }}</p>
+                
+                <div class="bg-light rounded p-3">
+                    <h2 class="fw-bold text-warning mb-0">
+                        <i class="bi bi-coin"></i> {{ top_student.total_coins }}
+                    </h2>
+                    <small class="text-muted">Coinlar</small>
+                </div>
+                
+                {% if forloop.counter == 1 %}
+                <div class="mt-3">
+                    <span class="badge bg-warning text-dark">1-o'rin 🥇</span>
+                </div>
+                {% elif forloop.counter == 2 %}
+                <div class="mt-3">
+                    <span class="badge bg-secondary">2-o'rin 🥈</span>
+                </div>
+                {% else %}
+                <div class="mt-3">
+                    <span class="badge bg-info">3-o'rin 🥉</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Your Position Info -->
+{% if student_position and student_position > 3 %}
+<div class="card border-primary">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-2 text-center">
+                <h1 class="fw-bold text-primary mb-0">#{{ student_position }}</h1>
+            </div>
+            <div class="col-md-8">
+                <h5 class="fw-bold mb-1">{{ student.user.get_full_name }}</h5>
+                <p class="text-muted mb-0">{{ student.student_id }} · {{ student.total_coins }} coinlar</p>
+            </div>
+            <div class="col-md-2 text-center">
+                <span class="badge bg-primary fs-6">Sizning O'rningiz</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="alert alert-info mt-4">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Ma'lumot:</strong> Leaderboard coinlar bo'yicha tartiblangan. Ko'proq coins to'plasangiz, yuqori o'ringa chiqasiz!
+</div>
+
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-trophy text-muted" style="font-size: 5rem;"></i>
+        <h4 class="text-muted mt-3">Ma'lumot yo'q</h4>
+        <p class="text-muted">Guruhda boshqa o'quvchilar yo'q yoki sizda guruh yo'q</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

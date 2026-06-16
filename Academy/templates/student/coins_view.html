@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Mening Coinlarim - Student{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/student_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Mening Coinlarim</h2>
+        <p class="text-muted mb-0">Coin tarixi va balans</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card stat-card border-start border-5 border-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Jami Coinlar</p>
+                        <h1 class="fw-bold mb-0 display-4">
+                            <i class="bi bi-coin text-warning"></i> {{ total_coins }}
+                        </h1>
+                    </div>
+                    <div class="text-warning" style="font-size: 5rem; opacity: 0.2;">
+                        <i class="bi bi-coin"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if transactions %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Coin Tarixi</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Miqdor</th>
+                        <th>Sabab</th>
+                        <th>Tomonidan</th>
+                        <th>Sana</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>
+                            <span class="badge {% if transaction.amount > 0 %}bg-success{% else %}bg-danger{% endif %} fs-6">
+                                {% if transaction.amount > 0 %}+{% endif %}{{ transaction.amount }}
+                                <i class="bi bi-coin ms-1"></i>
+                            </span>
+                        </td>
+                        <td><strong>{{ transaction.reason }}</strong></td>
+                        <td>{{ transaction.given_by.get_full_name }}</td>
+                        <td class="text-muted">{{ transaction.date|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-coin text-muted" style="font-size: 5rem;"></i>
+        <h4 class="text-muted mt-3">Coin tarixi yo'q</h4>
+        <p class="text-muted">Hali coins berilmagan</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

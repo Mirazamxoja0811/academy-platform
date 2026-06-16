@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Davomat - Teacher{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/teacher_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Davomat</h2>
+        <p class="text-muted mb-0">O'quvchilar davomati</p>
+    </div>
+    <a href="{% url 'teacher_attendance_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i>Davomat qo'yish
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>O'quvchi</th>
+                        <th>Guruh</th>
+                        <th>Sana</th>
+                        <th>Status</th>
+                        <th>Izoh</th>
+                        <th>Amallar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attendance in attendances %}
+                    <tr>
+                        <td>
+                            <strong>{{ attendance.student.user.get_full_name }}</strong><br>
+                            <small class="text-muted">{{ attendance.student.student_id }}</small>
+                        </td>
+                        <td>{{ attendance.group.name }}</td>
+                        <td>{{ attendance.date|date:"d.m.Y" }}</td>
+                        <td>
+                            {% if attendance.status == 'present' %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Keldi
+                            </span>
+                            {% elif attendance.status == 'late' %}
+                            <span class="badge bg-warning">
+                                <i class="bi bi-clock me-1"></i>Kech qoldi
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle me-1"></i>Kelmadi
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted">{{ attendance.note|truncatewords:5|default:"-" }}</td>
+                        <td>
+                            <a href="{% url 'teacher_attendance_delete' attendance.id %}" 
+                               class="btn btn-sm btn-danger"
+                               title="O'chirish">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">Davomat ma'lumoti yo'q</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

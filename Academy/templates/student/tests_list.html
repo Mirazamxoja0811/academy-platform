@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Testlar - Student{% endblock %}
+{% block sidebar %}
+{% include 'includes/student_sidebar.html' %}
+{% endblock %}
+{% block content %}
+<h2 class="mb-4">Testlar</h2>
+{% for test in tests %}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h5>{{ test.title }}</h5>
+                <p class="text-muted">{{ test.description }}</p>
+                <small><i class="bi bi-clock me-1"></i>{{ test.duration }} daqiqa · <i class="bi bi-question-circle me-1"></i>{{ test.questions.count }} savol · <i class="bi bi-star me-1"></i>{{ test.total_marks }} ball</small>
+            </div>
+            <div>
+                {% if test.submitted %}
+                <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i>Topshirilgan · {{ test.score }}/{{ test.total_marks }}</span>
+                {% else %}
+                <a href="{% url 'student_test_take' test.id %}" class="btn btn-primary"><i class="bi bi-pencil me-1"></i>Topshirish</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="card"><div class="card-body text-center py-5"><i class="bi bi-file-earmark-text text-muted" style="font-size: 5rem;"></i><h4 class="text-muted mt-3">Testlar yo'q</h4></div></div>
+{% endfor %}
+{% endblock %}

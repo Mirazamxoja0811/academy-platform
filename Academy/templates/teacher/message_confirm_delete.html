@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Xabarni o'chirish - Teacher{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/teacher_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Xabarni o'chirish
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Diqqat!</strong> Bu xabar butunlay o'chiriladi va qayta tiklanmaydi.
+                </div>
+
+                <div class="mb-3">
+                    <h6>Xabar ma'lumotlari:</h6>
+                    <p><strong>Sarlavha:</strong> {{ message_obj.title }}</p>
+                    <p><strong>Guruh:</strong> {{ message_obj.group.name }}</p>
+                    <p><strong>Sana:</strong> {{ message_obj.date|date:"d.m.Y H:i" }}</p>
+                    <p><strong>Matn:</strong></p>
+                    <div class="border p-2 bg-light">
+                        {{ message_obj.content|truncatewords:50 }}
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-2"></i>Ha, o'chirish
+                        </button>
+                        <a href="{% url 'teacher_messages_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-lg me-2"></i>Yo'q, bekor qilish
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

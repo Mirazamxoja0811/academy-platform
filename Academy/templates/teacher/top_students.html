@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Top O'quvchilar - Teacher{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/teacher_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Top O'quvchilar</h2>
+        <p class="text-muted mb-0">Har guruh bo'yicha eng faol o'quvchilar</p>
+    </div>
+    <span class="badge bg-warning fs-6">
+        <i class="bi bi-trophy me-1"></i>Top 3
+    </span>
+</div>
+
+{% for group, students in top_students_by_group.items %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-collection me-2"></i>{{ group.name }}
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if students %}
+        <div class="row g-3">
+            {% for student in students %}
+            <div class="col-md-4">
+                <div class="card {% if forloop.counter == 1 %}border-warning{% elif forloop.counter == 2 %}border-secondary{% else %}border-info{% endif %}" style="border-width: 3px;">
+                    <div class="card-body text-center">
+                        <div class="position-relative d-inline-block mb-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px; font-size: 2rem;">
+                                {{ student.user.first_name.0 }}{{ student.user.last_name.0 }}
+                            </div>
+                            <div class="position-absolute top-0 start-0 translate-middle">
+                                {% if forloop.counter == 1 %}
+                                <span class="badge bg-warning rounded-circle p-2" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-trophy-fill fs-5"></i>
+                                </span>
+                                {% elif forloop.counter == 2 %}
+                                <span class="badge bg-secondary rounded-circle p-2" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-award-fill fs-5"></i>
+                                </span>
+                                {% else %}
+                                <span class="badge bg-info rounded-circle p-2" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-star-fill fs-5"></i>
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <h5 class="fw-bold">{{ student.user.get_full_name }}</h5>
+                        <p class="text-muted mb-2">{{ student.student_id }}</p>
+                        
+                        <div class="bg-light rounded p-3">
+                            <h3 class="fw-bold text-warning mb-0">
+                                <i class="bi bi-coin"></i> {{ student.total_coins }}
+                            </h3>
+                            <small class="text-muted">Jami Coinlar</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-center text-muted mb-0">Bu guruhda o'quvchilar yo'q</p>
+        {% endif %}
+    </div>
+</div>
+{% empty %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-trophy text-muted" style="font-size: 5rem;"></i>
+        <h4 class="text-muted mt-3">Guruhlar yo'q</h4>
+        <p class="text-muted">Sizga biriktirilgan guruhlar topilmadi</p>
+    </div>
+</div>
+{% endfor %}
+
+<div class="alert alert-info mt-4">
+    <i class="bi bi-lightbulb me-2"></i>
+    <strong>Ma'lumot:</strong> Top o'quvchilar coinlar bo'yicha tartiblangan. Ko'proq coins to'plagan o'quvchilar yuqori o'rinda turadi.
+</div>
+{% endblock %}

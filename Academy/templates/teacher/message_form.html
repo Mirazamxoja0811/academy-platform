@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Xabar yuborish - Teacher{% endblock %}
+{% block sidebar %}
+{% include 'includes/teacher_sidebar.html' %}
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Xabar yuborish</h5></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3"><label class="form-label">Matn *</label>{{ form.content }}</div>
+                    <div class="mb-3"><label class="form-label">Guruh</label>{{ form.group }}<small class="text-muted">Bo'sh qoldirsa barcha guruhlarga boradi</small></div>
+                    <div class="mb-3"><label class="form-label">Turi *</label>{{ form.message_type }}</div>
+                    <button type="submit" class="btn btn-primary">Yuborish</button>
+                    <a href="{% url 'teacher_messages_list' %}" class="btn btn-secondary">Bekor qilish</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

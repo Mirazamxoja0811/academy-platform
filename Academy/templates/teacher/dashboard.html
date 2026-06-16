@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher Dashboard - Mentor Academy{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/teacher_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">O'qituvchi Dashboard</h2>
+        <p class="text-muted mb-0">Guruhlar va o'quvchilarni boshqarish</p>
+    </div>
+    <span class="badge badge-teacher fs-6">O'qituvchi</span>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card teacher">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Mening Guruhlarim</p>
+                        <h2 class="fw-bold mb-0">{{ total_groups }}</h2>
+                    </div>
+                    <div class="text-success" style="font-size: 2.5rem;">
+                        <i class="bi bi-collection-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card stat-card student">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Jami O'quvchilar</p>
+                        <h2 class="fw-bold mb-0">{{ total_students }}</h2>
+                    </div>
+                    <div class="text-primary" style="font-size: 2.5rem;">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card admin">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Berilgan Coinlar</p>
+                        <h2 class="fw-bold mb-0">{{ total_given_coins }}</h2>
+                    </div>
+                    <div class="text-warning" style="font-size: 2.5rem;">
+                        <i class="bi bi-coin"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- My Groups -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-collection me-2"></i>Mening Guruhlarim</span>
+            </div>
+            <div class="card-body">
+                {% if groups %}
+                <div class="row g-3">
+                    {% for group in groups %}
+                    <div class="col-md-4">
+                        <div class="card border">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="card-title mb-0">{{ group.name }}</h5>
+                                    <span class="badge bg-success">Faol</span>
+                                </div>
+                                <p class="text-muted small mb-3">{{ group.description|truncatewords:10 }}</p>
+                                <div class="d-flex justify-content-between text-muted small mb-3">
+                                    <span><i class="bi bi-people me-1"></i>{{ group.students.count }} o'quvchi</span>
+                                    <span><i class="bi bi-calendar me-1"></i>{{ group.start_date|date:"d.m.Y" }}</span>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="{% url 'teacher_group_detail' group.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye me-1"></i>Batafsil
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-collection text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">Guruhlar yo'q</h5>
+                    <p class="text-muted">Hali birorta guruh yaratilmagan</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tips -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-lightbulb me-2"></i>
+            <strong>Maslahat:</strong> Har hafta o'quvchilarning davomat va baholari statistikasini ko'rib chiqing!
+        </div>
+    </div>
+</div>
+{% endblock %}

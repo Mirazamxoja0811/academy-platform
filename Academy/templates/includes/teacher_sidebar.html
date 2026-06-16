@@ -1,0 +1,50 @@
+<ul class="nav flex-column">
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'teacher_dashboard' %}active{% endif %}" href="{% url 'teacher_dashboard' %}">
+            <i class="bi bi-speedometer2"></i>
+            Dashboard
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'analytics' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'teacher_students_analytics' %}">
+            <i class="bi bi-bar-chart"></i>
+            O'quvchilar Tahlili
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'attendance' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'teacher_attendance_quick' %}">
+            <i class="bi bi-lightning-charge-fill"></i>
+            Tez Davomat
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'grading' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'teacher_grading_list' %}">
+            <i class="bi bi-award"></i>
+            Baholar
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'coins' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'teacher_coins_list' %}">
+            <i class="bi bi-coin"></i>
+            Coins
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'test' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'teacher_tests_list' %}">
+            <i class="bi bi-file-earmark-text"></i>
+            Testlar
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'message' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'teacher_messages_list' %}">
+            <i class="bi bi-chat-dots"></i>
+            Xabarlar
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'teacher_top_students' %}active{% endif %}" href="{% url 'teacher_top_students' %}">
+            <i class="bi bi-trophy"></i>
+            Top O'quvchilar
+        </a>
+    </li>
+</ul>

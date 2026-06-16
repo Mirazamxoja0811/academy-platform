@@ -1,0 +1,44 @@
+<ul class="nav flex-column">
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}" href="{% url 'student_dashboard' %}">
+            <i class="bi bi-speedometer2"></i>
+            Dashboard
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'student_grades_view' %}active{% endif %}" href="{% url 'student_grades_view' %}">
+            <i class="bi bi-award"></i>
+            Baholarim
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'student_coins_view' %}active{% endif %}" href="{% url 'student_coins_view' %}">
+            <i class="bi bi-coin"></i>
+            Coins
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'student_attendance_view' %}active{% endif %}" href="{% url 'student_attendance_view' %}">
+            <i class="bi bi-calendar-check"></i>
+            Davomat
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if 'test' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'student_tests_list' %}">
+            <i class="bi bi-file-earmark-text"></i>
+            Testlar
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'student_messages_view' %}active{% endif %}" href="{% url 'student_messages_view' %}">
+            <i class="bi bi-chat-dots"></i>
+            Xabarlar
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'student_leaderboard' %}active{% endif %}" href="{% url 'student_leaderboard' %}">
+            <i class="bi bi-trophy"></i>
+            Leaderboard
+        </a>
+    </li>
+</ul>

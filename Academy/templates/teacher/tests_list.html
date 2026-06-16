@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Testlar - Teacher{% endblock %}
+{% block sidebar %}
+{% include 'includes/teacher_sidebar.html' %}
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2>Testlar</h2>
+    <a href="{% url 'teacher_test_create' %}" class="btn btn-success"><i class="bi bi-plus-lg me-2"></i>Test yaratish</a>
+</div>
+{% for test in tests %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5>{{ test.title }}</h5>
+        <p class="text-muted">{{ test.description }}</p>
+        <div class="row">
+            <div class="col-md-3"><small>Guruh: {{ test.group.name }}</small></div>
+            <div class="col-md-3"><small>Vaqt: {{ test.duration }} daqiqa</small></div>
+            <div class="col-md-3"><small>Savollar: {{ test.questions.count }}</small></div>
+            <div class="col-md-3"><small>Ball: {{ test.total_marks }}</small></div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="card"><div class="card-body text-center py-5"><i class="bi bi-file-earmark-text text-muted" style="font-size: 5rem;"></i><h4 class="text-muted mt-3">Testlar yo'q</h4></div></div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Coinslarni Tozalash - Mentor Academy{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/teacher_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Coinslarni Tozalash</h2>
+        <p class="text-muted mb-0">O'quvchilarning coinslarini tozalash</p>
+    </div>
+    <a href="{% url 'teacher_coins_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Ortga
+    </a>
+</div>
+
+<!-- Warning Alert -->
+<div class="alert alert-warning border-warning mb-4" role="alert">
+    <div class="d-flex align-items-start">
+        <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+        <div>
+            <h5 class="alert-heading mb-2">Diqqat!</h5>
+            <p class="mb-0">Coinslarni tozalash jarayoni qaytarilmaydi. Barcha coins tarixi va ballar butunlay o'chirib tashlanadi.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Options -->
+<div class="row">
+    <!-- Reset by Group -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-collection me-2"></i>Guruh bo'yicha tozalash
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Bitta guruhning barcha o'quvchilarining coinslarini tozalang.</p>
+                
+                <form method="post" onsubmit="return confirm('Rostdan ham bu guruhdagi barcha o\'quvchilarning coinslarini tozalamoqchimisiz?');">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="group" class="form-label fw-semibold">Guruhni tanlang</label>
+                        <select name="group" id="group" class="form-select" required>
+                            <option value="">Guruhni tanlang</option>
+                            {% for group in groups %}
+                            <option value="{{ group.id }}">
+                                {{ group.name }} ({{ group.students.count }} o'quvchi)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-trash me-2"></i>Guruh coinslarini tozalash
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reset All -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-exclamation-circle me-2"></i>Barchasi tozalash
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Barcha guruhlaringiz o'quvchilarining coinslarini tozalang.</p>
+                
+                <div class="alert alert-light border mb-3">
+                    <p class="mb-2"><strong>Tozalanishi kerak bo'lgan guruhlar:</strong></p>
+                    <ul class="mb-0 ps-3">
+                        {% for group in groups %}
+                        <li>{{ group.name }} - {{ group.students.count }} o'quvchi</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <form method="post" onsubmit="return confirm('DIQQAT! Barcha guruhlaringiz o\'quvchilarining coinslari tozalanadi. Davom etmoqchimisiz?');">
+                    {% csrf_token %}
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash3 me-2"></i>Barcha coinslarni tozalash
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Info Card -->
+<div class="card border-info">
+    <div class="card-body">
+        <h5 class="card-title text-info">
+            <i class="bi bi-info-circle me-2"></i>Ma'lumot
+        </h5>
+        <p class="mb-2">Coinslarni tozalash quyidagi ma'lumotlarni o'chiradi:</p>
+        <ul class="mb-0">
+            <li>Barcha coins berish tarixi (coin transactions)</li>
+            <li>O'quvchilarning umumiy coins balansi</li>
+            <li>Top o'quvchilar reytingi yangilanadi</li>
+        </ul>
+        <hr>
+        <p class="text-muted small mb-0">
+            <i class="bi bi-lightbulb me-1"></i>
+            <strong>Maslahat:</strong> Coinslarni tozalashdan oldin, agar kerak bo'lsa statistikani saqlab oling yoki screenshot oling.
+        </p>
+    </div>
+</div>
+{% endblock %}

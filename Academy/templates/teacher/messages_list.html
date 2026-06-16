@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Xabarlar - Teacher{% endblock %}
+{% block sidebar %}
+{% include 'includes/teacher_sidebar.html' %}
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2>Xabarlar</h2>
+    <a href="{% url 'teacher_message_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-2"></i>Xabar yuborish</a>
+</div>
+<div class="card">
+    <div class="card-body">
+        {% for msg in messages_list %}
+        <div class="border-bottom pb-3 mb-3">
+            <h5>{{ msg.title }}</h5>
+            <p>{{ msg.content }}</p>
+            <small class="text-muted">{{ msg.date|date:"d.m.Y H:i" }} · {{ msg.get_message_type_display }} · {% if msg.group %}{{ msg.group.name }}{% else %}Barcha guruhlar{% endif %}</small>
+        </div>
+        {% empty %}
+        <p class="text-center text-muted">Xabarlar yo'q</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
