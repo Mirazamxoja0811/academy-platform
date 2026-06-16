@@ -1,4 +1,4 @@
-Django==6.0.3
+Django>=5.0,<5.2
 Pillow==11.0.0
 python-telegram-bot==20.7
 APScheduler==3.10.4
