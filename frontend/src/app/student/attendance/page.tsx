@@ -8,12 +8,7 @@ const itemVariants: Variants = {
 };
 
 export default function StudentAttendance() {
-  const attendance = [
-    { date: "16 Iyun, 2026", status: "Keldi", group: "IELTS Intensive 12" },
-    { date: "15 Iyun, 2026", status: "Keldi", group: "IELTS Intensive 12" },
-    { date: "14 Iyun, 2026", status: "Sababli", group: "IELTS Intensive 12" },
-    { date: "13 Iyun, 2026", status: "Keldi", group: "IELTS Intensive 12" },
-  ];
+  const attendance: any[] = [];
 
   return (
     <div className="p-8 relative">
@@ -25,7 +20,7 @@ export default function StudentAttendance() {
             <p className="text-slate-400 mt-2 text-sm">Darslarga qatnashish statistikangiz</p>
           </div>
           <div className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-6 py-2 rounded-xl text-sm font-bold shadow-lg">
-            92% Davomat
+            0% Davomat
           </div>
         </motion.div>
 

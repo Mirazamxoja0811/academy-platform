@@ -8,11 +8,7 @@ const itemVariants: Variants = {
 };
 
 export default function StudentGrades() {
-  const grades = [
-    { subject: "Matematika", grade: 5, date: "2026-06-15", teacher: "A. Aliyev" },
-    { subject: "Ingliz tili", grade: 4, date: "2026-06-14", teacher: "B. Valiyeva" },
-    { subject: "Fizika", grade: 5, date: "2026-06-12", teacher: "D. Karimov" }
-  ];
+  const grades: any[] = [];
 
   return (
     <div className="p-8 relative">

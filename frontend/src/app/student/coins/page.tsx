@@ -8,11 +8,7 @@ const itemVariants: Variants = {
 };
 
 export default function StudentCoins() {
-  const transactions = [
-    { type: "plus", amount: 50, reason: "A'lo baho uchun", date: "16 Iyun, 2026" },
-    { type: "minus", amount: 200, reason: "Marketdan ruchka xaridi", date: "14 Iyun, 2026" },
-    { type: "plus", amount: 100, reason: "Faollik uchun", date: "12 Iyun, 2026" },
-  ];
+  const transactions: any[] = [];
 
   return (
     <div className="p-8 relative">
@@ -29,7 +25,7 @@ export default function StudentCoins() {
         <motion.div variants={itemVariants} className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-xl border border-yellow-500/30 rounded-[2rem] p-10 shadow-2xl overflow-hidden relative group">
            <div className="absolute top-0 right-0 p-8 text-8xl opacity-20 group-hover:scale-110 transition-transform duration-500">🪙</div>
            <h3 className="text-yellow-400 text-sm font-bold uppercase tracking-wider mb-2">Umumiy Balans</h3>
-           <p className="text-6xl font-black text-white drop-shadow-lg">1,250 <span className="text-3xl text-yellow-500">Coin</span></p>
+           <p className="text-6xl font-black text-white drop-shadow-lg">0 <span className="text-3xl text-yellow-500">Coin</span></p>
         </motion.div>
 
         {/* Transactions list */}
