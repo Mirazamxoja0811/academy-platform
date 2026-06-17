@@ -16,12 +16,13 @@ services:
 
   django_admin:
     build:
-      context: ./Academy
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Academy/Dockerfile
     container_name: mentor_django
     command: gunicorn Academy.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - ./Academy:/app
+      - ./frontend/out:/app/frontend_out
       - static_volume:/app/static
       - media_volume:/app/media
     environment:
@@ -33,6 +34,8 @@ services:
       - DB_PORT=5432
       - SECRET_KEY=your_secret_key_here
       - DEBUG=1
+      - FRONTEND_DIR=/app/frontend_out
+      - ALLOWED_HOSTS=127.0.0.1,localhost,16.171.67.128
     ports:
       - "8000:8000"
     depends_on:

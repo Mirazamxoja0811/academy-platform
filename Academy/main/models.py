@@ -78,6 +78,7 @@ class Attendance(models.Model):
         ('present', 'Keldi'),
         ('absent', 'Kelmadi'),
         ('late', 'Kech qoldi'),
+        ('excused', 'Sababli'),
     ]
     
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='attendances')
@@ -240,3 +241,24 @@ class AdmissionRequest(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+
+class Payment(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', 'Naqd pul'),
+        ('card', 'Plastik karta'),
+        ('transfer', 'Pul o\'tkazmasi'),
+    ]
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cash')
+    description = models.TextField(blank=True)
+    processed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'admin'})
+    payment_date = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.user.get_full_name()} - {self.amount} ({self.get_payment_method_display()})"
+
+    class Meta:
+        ordering = ['-payment_date']

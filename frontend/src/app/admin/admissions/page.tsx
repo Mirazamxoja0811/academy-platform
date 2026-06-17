@@ -9,7 +9,8 @@ export default function AdminAdmissions() {
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
-    course_name: ""
+    course_name: "",
+    message: ""
   });
   const [loading, setLoading] = useState(false);
 
@@ -38,7 +39,7 @@ export default function AdminAdmissions() {
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ full_name: "", phone: "", course_name: "" });
+        setFormData({ full_name: "", phone: "", course_name: "", message: "" });
         fetchAdmissions();
       }
     } catch (e) {
@@ -72,6 +73,7 @@ export default function AdminAdmissions() {
                 <th className="pb-4 font-medium uppercase text-xs tracking-wider">F.I.SH</th>
                 <th className="pb-4 font-medium uppercase text-xs tracking-wider">Telefon</th>
                 <th className="pb-4 font-medium uppercase text-xs tracking-wider">Kurs nomi</th>
+                <th className="pb-4 font-medium uppercase text-xs tracking-wider">Xabar / Savol</th>
                 <th className="pb-4 font-medium uppercase text-xs tracking-wider text-right">Holat</th>
               </tr>
             </thead>
@@ -81,6 +83,9 @@ export default function AdminAdmissions() {
                   <td className="py-5 text-white font-medium">{a.full_name}</td>
                   <td className="py-5 text-slate-300">{a.phone}</td>
                   <td className="py-5 text-slate-300">{a.course_name}</td>
+                  <td className="py-5 text-slate-400 max-w-xs">
+                    <p className="line-clamp-2" title={a.message}>{a.message || "Xabar yo'q"}</p>
+                  </td>
                   <td className="py-5 text-right">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${a.status === 'new' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'}`}>
                       {a.status === 'new' ? "Yangi" : a.status}
@@ -119,6 +124,10 @@ export default function AdminAdmissions() {
                 <div>
                   <label className="block text-sm text-slate-400 mb-1">Kurs Nomi</label>
                   <input type="text" required value={formData.course_name} onChange={e => setFormData({...formData, course_name: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Savol / Xabar</label>
+                  <textarea value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} rows={3} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="Foydalanuvchidan kelgan savol yoki izoh" />
                 </div>
                 <div className="flex gap-4 mt-6">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors">Bekor qilish</button>

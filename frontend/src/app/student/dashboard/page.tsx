@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, Variants } from "framer-motion";
+import DashboardClock from "@/components/DashboardClock";
 
 interface Activity {
   id: number;
@@ -35,9 +36,8 @@ const itemVariants: Variants = {
 };
 
 export default function StudentDashboard() {
-  const [data, setData] = useState<StudentData>({
-    full_name: "O'quvchi",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Student",
+  const [data, setData] = useState<StudentData & {rank?: number, total_students?: number, group_name?: string}>({
+    full_name: "Yuklanmoqda...",
     total_coins: 0,
     attendance_rate: 0,
     average_grade: 0,
@@ -46,6 +46,20 @@ export default function StudentDashboard() {
     attendances: [],
     recent_activities: []
   });
+
+  useEffect(() => {
+    fetch('/api/me/')
+      .then(res => res.json())
+      .then(user => {
+        setData(prev => ({...prev, full_name: user.full_name}));
+      });
+
+    fetch('/api/students/me/dashboard/')
+      .then(res => res.json())
+      .then(d => {
+        setData(prev => ({...prev, ...d}));
+      });
+  }, []);
   const router = useRouter();
 
   return (
@@ -61,29 +75,36 @@ export default function StudentDashboard() {
         {/* Header Section */}
         <motion.div variants={itemVariants} className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 p-8 md:p-10 rounded-[2rem] flex flex-col md:flex-row justify-between items-center gap-6 shadow-2xl relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 pointer-events-none"></div>
-          <div className="relative z-10">
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 w-full">
+          <div>
             <span className="bg-blue-500/20 text-blue-400 px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide border border-blue-500/20 shadow-inner">O'QUVCHI PANEL</span>
             <h1 className="text-3xl md:text-5xl font-extrabold text-white mt-5 drop-shadow-lg">
               Salom, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">{data.full_name}</span> 👋
             </h1>
             <p className="text-slate-300 mt-3 text-lg font-light">Bugungi o'qishlaringizga omad tilaymiz.</p>
+            {data.group_name && (
+              <div className="mt-4 flex gap-4 flex-wrap">
+                <span className="px-4 py-2 bg-white/10 rounded-xl border border-white/10 font-medium">🏫 {data.group_name}</span>
+                <span className="px-4 py-2 bg-yellow-500/10 text-yellow-400 rounded-xl border border-yellow-500/20 font-bold">🏆 Reyting: {data.rank} / {data.total_students}</span>
+              </div>
+            )}
           </div>
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => { localStorage.clear(); router.push('/login'); }}
-            className="px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-2xl transition font-medium border border-red-500/20 relative z-10 shadow-lg backdrop-blur-md"
-          >
-            Chiqish
-          </motion.button>
+          <DashboardClock />
+          </div>
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="bg-gradient-to-br from-amber-500 to-orange-600 p-8 rounded-[2rem] shadow-2xl shadow-orange-500/20 border border-white/20 relative overflow-hidden">
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute -right-8 -top-8 opacity-20 text-9xl pointer-events-none">🪙</motion.div>
             <h2 className="text-xl font-medium text-orange-100 relative z-10">Jami Coinlar</h2>
             <p className="text-6xl font-black text-white mt-2 relative z-10 drop-shadow-md">{data.total_coins}</p>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="bg-slate-800/40 backdrop-blur-xl p-8 rounded-[2rem] border border-slate-700/50 shadow-xl">
+            <h2 className="text-xl font-medium text-slate-300 mb-2">O'rtacha Baho</h2>
+            <p className="text-5xl font-black text-emerald-400">{data.average_grade || 0}</p>
+            <p className="text-slate-500 text-sm mt-2">Guruh reytingi: {data.rank || '-'} / {data.total_students || 0}</p>
           </motion.div>
 
           <motion.div variants={itemVariants} className="bg-slate-800/40 backdrop-blur-xl p-8 rounded-[2rem] border border-slate-700/50 shadow-xl">

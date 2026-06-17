@@ -1,9 +1,8 @@
 "use client";
 
-import { ReactNode } from "react";
-import Link from "next/link";
+import { ReactNode, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import DashboardClock from "@/components/DashboardClock";
 
 const menuItems = [
   { name: "Asosiy", path: "/student/dashboard/", icon: "🏠" },
@@ -16,13 +15,23 @@ const menuItems = [
 
 export default function StudentLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [user, setUser] = useState<{full_name: string, role: string} | null>(null);
+
+  useEffect(() => {
+    fetch('/api/me/')
+      .then(res => res.json())
+      .then(data => {
+        if (data.detail) { window.location.href = '/login/'; return; }
+        const name = data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.username;
+        if (name) setUser({ full_name: name, role: data.role });
+      })
+      .catch(() => window.location.href = '/login/');
+  }, []);
 
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = "/login/";
   };
-
-
   return (
     <div className="flex h-screen bg-[#0f172a] text-white overflow-hidden font-sans">
       {/* Sidebar */}
@@ -31,7 +40,19 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
             Academy
           </h1>
-          <p className="text-xs text-slate-400 mt-1">O'quvchi Paneli</p>
+          <p className="text-xs text-slate-400 mt-1 mb-4">O'quvchi Paneli</p>
+          
+          {user && (
+            <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white font-bold shadow-lg">
+                {user.full_name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white line-clamp-1">{user.full_name}</p>
+                <p className="text-xs text-emerald-400">O'quvchi</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 py-6 px-4 space-y-2 overflow-y-auto">
@@ -52,7 +73,10 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
+        <div className="p-4 border-t border-white/10 space-y-3">
+          <div className="[&_div]:text-left [&_p:first-child]:text-lg">
+            <DashboardClock />
+          </div>
           <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-colors">
             <span>🚪</span> Chiqish
           </button>

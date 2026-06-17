@@ -40,7 +40,9 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-!p+za4d*m7q6xivk@@=fd
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool('DEBUG', True)
 
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',') if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get(
+    'ALLOWED_HOSTS', '127.0.0.1,localhost,16.171.67.128'
+).split(',') if h.strip()]
 
 
 # Application definition
@@ -68,10 +70,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'Academy.urls'
 
+FRONTEND_DIR = Path(os.environ.get('FRONTEND_DIR', BASE_DIR.parent / 'frontend' / 'out'))
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-            'DIRS': [BASE_DIR.parent / 'frontend' / 'out'],
+        'DIRS': [FRONTEND_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -141,10 +145,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-FRONTEND_DIR = BASE_DIR.parent / 'frontend' / 'out'
-STATICFILES_DIRS = [
-    FRONTEND_DIR,
-]
+STATICFILES_DIRS = [d for d in [FRONTEND_DIR] if d.exists()]
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'

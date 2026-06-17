@@ -3,6 +3,7 @@
 import { motion, Variants } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DashboardClock from "@/components/DashboardClock";
 
 interface TeacherData {
   full_name: string;
@@ -36,9 +37,8 @@ const itemVariants: Variants = {
 };
 
 export default function TeacherDashboard() {
-  const [data, setData] = useState<TeacherData>({
-    full_name: "O'qituvchi",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher",
+  const [data, setData] = useState<TeacherData & { passive_students?: {id: number, name: string, avg: number}[] }>({
+    full_name: "Yuklanmoqda...",
     total_groups: 0,
     total_students: 0,
     total_given_coins: 0,
@@ -48,6 +48,16 @@ export default function TeacherDashboard() {
     recent_activities: []
   });
   const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/me/')
+      .then(res => res.json())
+      .then(user => setData(prev => ({...prev, full_name: user.full_name})));
+
+    fetch('/api/teacher/dashboard/stats/')
+      .then(res => res.json())
+      .then(d => setData(prev => ({...prev, ...d})));
+  }, []);
 
   return (
     <div className="p-8 relative">
@@ -59,19 +69,14 @@ export default function TeacherDashboard() {
         animate="visible"
       >
         {/* Header */}
-        <motion.div variants={itemVariants} className="flex justify-between items-center mb-12">
+        <motion.div variants={itemVariants} className="flex justify-between items-start mb-12 gap-4 flex-wrap">
           <div>
             <h1 className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
               O'qituvchi Paneli
             </h1>
             <p className="text-slate-400 mt-2 text-lg">Xush kelibsiz, {data?.full_name}</p>
           </div>
-          <button
-            onClick={() => router.push("/")}
-            className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full backdrop-blur-md transition-all text-sm font-medium"
-          >
-            Chiqish
-          </button>
+          <DashboardClock />
         </motion.div>
 
         {/* Stats Grid */}
@@ -132,35 +137,41 @@ export default function TeacherDashboard() {
             <div className="bg-gradient-to-br from-indigo-600/30 to-purple-600/30 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-xl">
                <h2 className="text-xl font-bold text-white mb-6">Tezkor amallar</h2>
                <div className="grid grid-cols-2 gap-4">
-                  <button className="py-4 px-6 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-center font-medium shadow-lg hover:shadow-indigo-500/20">
+                  <button onClick={() => router.push('/teacher/attendance/')} className="py-4 px-6 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-center font-medium shadow-lg hover:shadow-indigo-500/20">
                      ✨ Davomat olish
                   </button>
-                  <button className="py-4 px-6 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-center font-medium shadow-lg hover:shadow-purple-500/20">
+                  <button onClick={() => router.push('/teacher/grading/')} className="py-4 px-6 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-center font-medium shadow-lg hover:shadow-purple-500/20">
                      📝 Baholash
                   </button>
-                  <button className="py-4 px-6 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-center font-medium shadow-lg hover:shadow-blue-500/20">
+                  <button onClick={() => router.push('/teacher/coins/')} className="py-4 px-6 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-center font-medium shadow-lg hover:shadow-blue-500/20">
                      🪙 Coin tarqatish
                   </button>
-                  <button className="py-4 px-6 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-center font-medium shadow-lg hover:shadow-pink-500/20">
-                     📊 Analitika
+                  <button onClick={() => router.push('/teacher/tests/')} className="py-4 px-6 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-center font-medium shadow-lg hover:shadow-pink-500/20">
+                     📋 Test tuzish
                   </button>
                </div>
             </div>
 
-            {/* Recent Activity */}
+            {/* Passive Students */}
             <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 shadow-xl">
-              <h2 className="text-xl font-bold text-white mb-6">So'nggi harakatlar</h2>
+              <h2 className="text-xl font-bold text-white mb-6">Top 3 Passiv O'quvchilar</h2>
               <div className="space-y-4">
-                {data?.recent_activities.map((act, index) => (
-                  <div key={index} className="flex gap-4">
-                    <div className="w-2 h-2 mt-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
-                    <div>
-                      <h4 className="font-medium text-slate-200">{act.activity_type}</h4>
-                      <p className="text-sm text-slate-400 mt-1">{act.description}</p>
-                      <p className="text-xs text-slate-500 mt-1">{act.created_at}</p>
+                {data.passive_students?.map((student, index) => (
+                  <div key={index} className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <div className="flex gap-4 items-center">
+                      <div className="w-10 h-10 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-slate-200">{student.name}</h4>
+                        <p className="text-sm text-slate-400 mt-1">O'rtacha baho: <span className="text-rose-400 font-bold">{student.avg}</span></p>
+                      </div>
                     </div>
                   </div>
                 ))}
+                {(!data.passive_students || data.passive_students.length === 0) && (
+                  <p className="text-slate-500">Passiv o'quvchilar yo'q</p>
+                )}
               </div>
             </div>
 

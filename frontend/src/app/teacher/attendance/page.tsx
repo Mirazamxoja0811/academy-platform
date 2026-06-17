@@ -8,48 +8,83 @@ export default function TeacherAttendance() {
   const [showToast, setShowToast] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
+  const [editingNote, setEditingNote] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/students/")
       .then(r => r.json())
-      .then(data => setStudents(data.map((s:any) => ({...s, status: null}))))
+      .then(data => setStudents(data.map((s: any) => ({ ...s, status: null, note: "" }))))
       .catch(e => console.error(e));
-      
+
     fetch("/api/groups/")
       .then(r => r.json())
-      .then(data => setGroups(data))
+      .then(data => {
+        setGroups(data);
+        if (data.length > 0) setSelectedGroup(String(data[0].id));
+      })
       .catch(e => console.error(e));
   }, []);
 
+  const filteredStudents = selectedGroup
+    ? students.filter(s => String(s.group_id) === selectedGroup)
+    : students;
+
   const handleStatus = (id: number, status: string) => {
     setStudents(students.map(s => s.id === id ? { ...s, status } : s));
+    if (status === 'excused') setEditingNote(id);
+  };
+
+  const handleNote = (id: number, note: string) => {
+    setStudents(students.map(s => s.id === id ? { ...s, note } : s));
   };
 
   const saveAttendance = () => {
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    const records = filteredStudents
+      .filter(s => s.status)
+      .map(s => ({
+        student_id: s.id,
+        status: s.status,
+        note: s.note || "",
+      }));
+
+    if (!selectedGroup || records.length === 0) return;
+
+    fetch('/api/teacher/batch_attendance/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        group_id: Number(selectedGroup),
+        records,
+      }),
+    })
+      .then(res => res.json())
+      .then(() => {
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+        setStudents(students.map(s => ({ ...s, status: null, note: "" })));
+        setEditingNote(null);
+      });
   };
 
   return (
     <div className="p-8 relative">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-5xl mx-auto space-y-8">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-extrabold text-white drop-shadow-lg">Davomat</h1>
             <p className="text-slate-400 mt-2 text-sm">Guruhlar bo'yicha yo'qlama qilish</p>
           </div>
           <div className="flex gap-4">
-            <select 
+            <select
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}
               className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl focus:outline-none"
             >
-              <option value="" disabled>Guruhni tanlang</option>
-              {groups.map((g, i) => (
-                <option key={i} className="text-black" value={g.name}>{g.name}</option>
+              {groups.map((g) => (
+                <option key={g.id} className="text-black" value={g.id}>{g.name}</option>
               ))}
             </select>
-            <button 
+            <button
               onClick={saveAttendance}
               className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded-xl shadow-lg shadow-emerald-500/30 transition-colors"
             >
@@ -57,56 +92,69 @@ export default function TeacherAttendance() {
             </button>
           </div>
         </div>
-        
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="text-slate-400 border-b border-white/10">
-                <th className="pb-4 font-medium uppercase text-xs tracking-wider">T/R</th>
-                <th className="pb-4 font-medium uppercase text-xs tracking-wider">F.I.SH</th>
-                <th className="pb-4 font-medium uppercase text-xs tracking-wider text-right">Holati</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((s, i) => (
-                <tr key={s.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                  <td className="py-5 text-slate-400">{i + 1}</td>
-                  <td className="py-5 text-white font-medium text-lg">{s.full_name} <span className="text-sm text-slate-500 ml-2">({s.group_name})</span></td>
-                  <td className="py-5 flex justify-end gap-3">
-                    <button 
-                      onClick={() => handleStatus(s.id, 'present')}
-                      className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
-                        s.status === 'present' 
-                          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/50' 
-                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
-                      }`}
-                    >
-                      {s.status === 'present' ? '✔️ Keldi' : 'Keldi'}
-                    </button>
-                    <button 
-                      onClick={() => handleStatus(s.id, 'absent')}
-                      className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
-                        s.status === 'absent' 
-                          ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/50' 
-                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20'
-                      }`}
-                    >
-                      {s.status === 'absent' ? '❌ Kelmadi' : 'Kelmadi'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl space-y-4">
+          {filteredStudents.map((s, i) => (
+            <div key={s.id} className="p-4 rounded-2xl bg-white/5 border border-white/5">
+              <div className="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                  <span className="text-slate-400 mr-3">{i + 1}.</span>
+                  <span className="text-white font-medium text-lg">{s.full_name}</span>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleStatus(s.id, 'present')}
+                    className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${
+                      s.status === 'present'
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/50'
+                        : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
+                    }`}
+                  >
+                    Keldi
+                  </button>
+                  <button
+                    onClick={() => handleStatus(s.id, 'excused')}
+                    className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${
+                      s.status === 'excused'
+                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50'
+                        : 'bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20'
+                    }`}
+                  >
+                    Sababli
+                  </button>
+                  <button
+                    onClick={() => handleStatus(s.id, 'absent')}
+                    className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${
+                      s.status === 'absent'
+                        ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/50'
+                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20'
+                    }`}
+                  >
+                    Kelmadi
+                  </button>
+                </div>
+              </div>
+              {(s.status === 'excused' || editingNote === s.id) && (
+                <input
+                  type="text"
+                  value={s.note}
+                  onChange={(e) => handleNote(s.id, e.target.value)}
+                  placeholder="Sababni yozing (masalan: kasallik, oilaviy)"
+                  className="mt-3 w-full bg-black/30 border border-blue-500/30 rounded-xl px-4 py-2 text-white text-sm focus:outline-none"
+                />
+              )}
+            </div>
+          ))}
+          {filteredStudents.length === 0 && (
+            <p className="text-center py-8 text-slate-500">Guruhda o'quvchi yo'q</p>
+          )}
         </div>
       </motion.div>
 
-      {/* Toast Notification */}
       {showToast && (
-        <motion.div 
-          initial={{ opacity: 0, y: 50 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
           className="fixed bottom-10 right-10 bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-2xl font-bold flex items-center gap-3 z-50"
         >
           <span>✅</span>

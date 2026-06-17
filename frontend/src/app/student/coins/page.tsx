@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, Variants } from "framer-motion";
 
 const itemVariants: Variants = {
@@ -7,8 +8,26 @@ const itemVariants: Variants = {
   visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
 };
 
+interface Transaction {
+  amount: number;
+  reason: string;
+  date: string;
+  given_by__first_name: string;
+}
+
 export default function StudentCoins() {
-  const transactions: any[] = [];
+  const [balance, setBalance] = useState<number>(0);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    fetch('/api/students/me/coins/')
+      .then(res => res.json())
+      .then(data => {
+        setBalance(data.balance || 0);
+        setTransactions(data.transactions || []);
+      })
+      .catch(console.error);
+  }, []);
 
   return (
     <div className="p-8 relative">
@@ -25,7 +44,7 @@ export default function StudentCoins() {
         <motion.div variants={itemVariants} className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-xl border border-yellow-500/30 rounded-[2rem] p-10 shadow-2xl overflow-hidden relative group">
            <div className="absolute top-0 right-0 p-8 text-8xl opacity-20 group-hover:scale-110 transition-transform duration-500">🪙</div>
            <h3 className="text-yellow-400 text-sm font-bold uppercase tracking-wider mb-2">Umumiy Balans</h3>
-           <p className="text-6xl font-black text-white drop-shadow-lg">0 <span className="text-3xl text-yellow-500">Coin</span></p>
+           <p className="text-6xl font-black text-white drop-shadow-lg">{balance} <span className="text-3xl text-yellow-500">Coin</span></p>
         </motion.div>
 
         {/* Transactions list */}
@@ -38,8 +57,8 @@ export default function StudentCoins() {
                   <h4 className="text-slate-200 font-medium">{tx.reason}</h4>
                   <p className="text-slate-400 text-xs mt-1">{tx.date}</p>
                 </div>
-                <div className={`text-xl font-bold ${tx.type === 'plus' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {tx.type === 'plus' ? '+' : '-'}{tx.amount}
+                <div className={`text-xl font-bold ${tx.amount > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {tx.amount > 0 ? '+' : ''}{tx.amount}
                 </div>
               </div>
             ))}

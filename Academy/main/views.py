@@ -46,12 +46,30 @@ def api_login(request):
     except Exception as e:
         return JsonResponse({"detail": str(e)}, status=400)
 
+def _user_display_name(user):
+    name = user.get_full_name().strip()
+    return name if name else user.username
+
+
+def _user_role(user):
+    return "admin" if user.is_superuser else user.role
+
+
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def api_users(request):
     if request.method == "GET":
-        users = CustomUser.objects.all().values('id', 'first_name', 'last_name', 'username', 'role', 'phone')
-        return JsonResponse(list(users), safe=False)
+        users = []
+        for user in CustomUser.objects.all().order_by('first_name', 'last_name'):
+            users.append({
+                'id': user.id,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'username': user.username,
+                'role': _user_role(user),
+                'phone': user.phone or '',
+            })
+        return JsonResponse(users, safe=False)
     elif request.method == "POST":
         data = json.loads(request.body)
         user = CustomUser.objects.create_user(
@@ -76,12 +94,15 @@ def api_users(request):
 @csrf_exempt
 @require_http_methods(["GET"])
 def api_students(request):
-    students = Student.objects.select_related('user', 'group').all()
+    qs = Student.objects.select_related('user', 'group').all()
+    if request.user.is_authenticated and request.user.role == 'teacher':
+        qs = qs.filter(group__teacher=request.user)
     data = []
-    for s in students:
+    for s in qs:
         data.append({
             "id": s.id,
-            "full_name": s.user.get_full_name(),
+            "full_name": _user_display_name(s.user),
+            "group_id": s.group_id,
             "group_name": s.group.name if s.group else "Guruhsiz",
             "student_id": s.student_id,
             "total_coins": s.total_coins,
@@ -92,15 +113,29 @@ def api_students(request):
 @require_http_methods(["GET", "POST"])
 def api_groups(request):
     if request.method == "GET":
-        groups = Group.objects.all().values('id', 'name', 'description', 'start_date')
-        return JsonResponse(list(groups), safe=False)
+        qs = Group.objects.all()
+        if request.user.is_authenticated and request.user.role == 'teacher':
+            qs = qs.filter(teacher=request.user)
+        groups = []
+        for g in qs:
+            groups.append({
+                'id': g.id,
+                'name': g.name,
+                'description': g.description,
+                'start_date': g.start_date.isoformat() if g.start_date else None,
+                'student_count': g.students.count(),
+            })
+        return JsonResponse(groups, safe=False)
     elif request.method == "POST":
         data = json.loads(request.body)
         from datetime import date
+        teacher_id = data.get('teacher_id')
+        teacher = CustomUser.objects.filter(id=teacher_id, role='teacher').first() if teacher_id else None
         group = Group.objects.create(
             name=data.get('name'),
             description=data.get('description', ''),
-            start_date=data.get('start_date') or date.today()
+            start_date=data.get('start_date') or date.today(),
+            teacher=teacher,
         )
         return JsonResponse({"message": "Guruh qo'shildi", "id": group.id})
 
@@ -108,7 +143,7 @@ def api_groups(request):
 @require_http_methods(["GET", "POST"])
 def api_admissions(request):
     if request.method == "GET":
-        admissions = AdmissionRequest.objects.all().values('id', 'full_name', 'phone', 'course_name', 'status', 'created_at')
+        admissions = AdmissionRequest.objects.all().values('id', 'full_name', 'phone', 'course_name', 'status', 'message', 'created_at')
         return JsonResponse(list(admissions), safe=False)
     elif request.method == "POST":
         data = json.loads(request.body)
@@ -116,6 +151,7 @@ def api_admissions(request):
             full_name=data.get('full_name'),
             phone=data.get('phone', ''),
             course_name=data.get('course_name', ''),
+            message=data.get('message', ''),
         )
         return JsonResponse({"message": "Qabul qo'shildi", "id": admission.id})
 
@@ -1404,3 +1440,500 @@ def student_test_take(request, test_id):
 
 
 
+
+
+# ================= NEW APIS =================
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_me(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Not authenticated"}, status=401)
+
+    user = request.user
+    return JsonResponse({
+        "id": user.id,
+        "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "full_name": _user_display_name(user),
+        "role": _user_role(user),
+    })
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_student_dashboard(request):
+    if not request.user.is_authenticated or request.user.role != 'student':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    student = request.user.student_profile
+    avg_grade = _get_student_grade_average(student)
+    attendance_rate = _get_student_attendance_percentage(student)
+
+    position = 0
+    total_students = 0
+    if student.group:
+        students_in_group = list(Student.objects.filter(group=student.group))
+        students_in_group.sort(key=lambda s: _get_student_grade_average(s), reverse=True)
+        try:
+            position = students_in_group.index(student) + 1
+        except ValueError:
+            position = 0
+        total_students = len(students_in_group)
+
+    recent_grades = list(
+        student.grades.all().order_by('-date')[:3].values('subject', 'grade', 'date')
+    )
+    recent_attendances = list(
+        student.attendances.all().order_by('-date')[:3].values('date', 'status', 'group__name')
+    )
+
+    return JsonResponse({
+        "full_name": _user_display_name(request.user),
+        "average_grade": avg_grade,
+        "attendance_rate": attendance_rate,
+        "total_coins": student.total_coins,
+        "rank": position,
+        "total_students": total_students,
+        "group_name": student.group.name if student.group else "Guruhsiz",
+        "grades": recent_grades,
+        "attendances": recent_attendances,
+    })
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_student_grades(request):
+    if not request.user.is_authenticated or request.user.role != 'student':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    student = request.user.student_profile
+    grades = student.grades.all().order_by('-date').values(
+        'id', 'subject', 'grade', 'date', 'teacher__first_name', 'teacher__last_name', 'comment'
+    )
+    return JsonResponse(list(grades), safe=False)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_student_attendance(request):
+    if not request.user.is_authenticated or request.user.role != 'student':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    student = request.user.student_profile
+    attendances = student.attendances.all().order_by('-date').values('date', 'status', 'group__name', 'note')
+    return JsonResponse(list(attendances), safe=False)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_student_coins(request):
+    if not request.user.is_authenticated or request.user.role != 'student':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    student = request.user.student_profile
+    txs = student.coin_transactions.all().order_by('-date').values('amount', 'reason', 'date', 'given_by__first_name')
+    return JsonResponse({"balance": student.total_coins, "transactions": list(txs)})
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_teacher_dashboard(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    teacher = request.user
+    groups = teacher.teaching_groups.all()
+    groups_count = groups.count()
+    total_students = Student.objects.filter(group__teacher=teacher).count()
+    coins_given = CoinTransaction.objects.filter(given_by=teacher).aggregate(Sum('amount'))['amount__sum'] or 0
+
+    groups_data = [
+        {"id": g.id, "name": g.name, "student_count": g.students.count()}
+        for g in groups
+    ]
+
+    students = list(Student.objects.filter(group__teacher=teacher).select_related('user'))
+    students.sort(key=lambda s: _get_student_grade_average(s))
+    passive_students = [
+        {
+            "id": s.id,
+            "name": _user_display_name(s.user),
+            "avg": _get_student_grade_average(s),
+        }
+        for s in students[:3]
+        if _get_student_grade_average(s) > 0
+    ]
+
+    return JsonResponse({
+        "total_groups": groups_count,
+        "total_students": total_students,
+        "total_given_coins": coins_given,
+        "groups": groups_data,
+        "passive_students": passive_students,
+    })
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def api_finance(request):
+    from .models import Payment
+    if request.method == "GET":
+        payments = []
+        for p in Payment.objects.select_related('student__user').all():
+            payments.append({
+                'id': p.id,
+                'student_id': p.student_id,
+                'student__user__first_name': p.student.user.first_name,
+                'student__user__last_name': p.student.user.last_name,
+                'amount': str(p.amount),
+                'payment_method': p.payment_method,
+                'description': p.description,
+                'payment_date': p.payment_date.isoformat(),
+            })
+        return JsonResponse(payments, safe=False)
+    elif request.method == "POST":
+        if not request.user.is_authenticated or _user_role(request.user) != 'admin':
+            return JsonResponse({"detail": "Not authorized"}, status=403)
+        data = json.loads(request.body)
+        student = Student.objects.get(id=data.get('student_id'))
+        Payment.objects.create(
+            student=student,
+            amount=data.get('amount'),
+            payment_method=data.get('payment_method', 'cash'),
+            description=data.get('description', ''),
+            processed_by=request.user,
+        )
+        return JsonResponse({"message": "To'lov saqlandi"})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_batch_grading(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    data = json.loads(request.body)
+    grades = data.get('grades', [])
+    subject = data.get('subject', 'Umumiy')
+    saved = 0
+    for g in grades:
+        if g.get('grade') is None:
+            continue
+        student = Student.objects.get(id=g['student_id'])
+        if student.group and student.group.teacher_id != request.user.id:
+            continue
+        Grade.objects.create(
+            student=student,
+            subject=g.get('subject') or subject,
+            grade=g['grade'],
+            teacher=request.user,
+            date=date.today(),
+        )
+        saved += 1
+    return JsonResponse({"message": f"{saved} ta baho saqlandi", "saved": saved})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_batch_attendance(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    data = json.loads(request.body)
+    group = Group.objects.get(id=data.get('group_id'))
+    if group.teacher_id != request.user.id:
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    attendance_date = data.get('date') or date.today().isoformat()
+    records = data.get('records', [])
+    saved = 0
+    for record in records:
+        if not record.get('status'):
+            continue
+        student = Student.objects.get(id=record['student_id'])
+        Attendance.objects.update_or_create(
+            student=student,
+            date=attendance_date,
+            defaults={
+                'group': group,
+                'status': record['status'],
+                'note': record.get('note', ''),
+                'teacher': request.user,
+            },
+        )
+        saved += 1
+    return JsonResponse({"message": f"{saved} ta davomat saqlandi", "saved": saved})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_teacher_coins(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    data = json.loads(request.body)
+    student = Student.objects.get(id=data.get('student_id'))
+    if student.group and student.group.teacher_id != request.user.id:
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    amount = int(data.get('amount', 0))
+    reason = data.get('reason', '').strip()
+    if not amount or not reason:
+        return JsonResponse({"detail": "Miqdor va sabab kerak"}, status=400)
+    CoinTransaction.objects.create(
+        student=student,
+        amount=amount,
+        reason=reason,
+        given_by=request.user,
+    )
+    return JsonResponse({"message": "Coin berildi", "balance": student.total_coins})
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_student_tests(request):
+    if not request.user.is_authenticated or request.user.role != 'student':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    student = request.user.student_profile
+    if not student.group:
+        return JsonResponse([], safe=False)
+
+    tests = Test.objects.filter(group=student.group, is_active=True).order_by('-created_at')
+    result = []
+    for test in tests:
+        submission = TestSubmission.objects.filter(test=test, student=student).first()
+        result.append({
+            'id': test.id,
+            'title': test.title,
+            'description': test.description,
+            'duration': test.duration,
+            'total_marks': test.total_marks,
+            'deadline': test.deadline.isoformat() if test.deadline else None,
+            'teacher__first_name': test.teacher.first_name,
+            'teacher__last_name': test.teacher.last_name,
+            'is_submitted': submission is not None,
+            'score': submission.score if submission else None,
+        })
+    return JsonResponse(result, safe=False)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_student_test_detail(request, test_id):
+    if not request.user.is_authenticated or request.user.role != 'student':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    student = request.user.student_profile
+    test = Test.objects.get(id=test_id, group=student.group, is_active=True)
+    if TestSubmission.objects.filter(test=test, student=student).exists():
+        return JsonResponse({"detail": "Test allaqachon topshirilgan"}, status=400)
+
+    questions = []
+    for q in test.questions.all().order_by('order'):
+        questions.append({
+            'id': q.id,
+            'question_text': q.question_text,
+            'option_a': q.option_a,
+            'option_b': q.option_b,
+            'option_c': q.option_c,
+            'option_d': q.option_d,
+            'marks': q.marks,
+            'order': q.order,
+        })
+    return JsonResponse({
+        'id': test.id,
+        'title': test.title,
+        'description': test.description,
+        'duration': test.duration,
+        'total_marks': test.total_marks,
+        'questions': questions,
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_student_test_submit(request, test_id):
+    if not request.user.is_authenticated or request.user.role != 'student':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    student = request.user.student_profile
+    test = Test.objects.get(id=test_id, group=student.group, is_active=True)
+    if TestSubmission.objects.filter(test=test, student=student).exists():
+        return JsonResponse({"detail": "Test allaqachon topshirilgan"}, status=400)
+
+    data = json.loads(request.body)
+    answers = data.get('answers', {})
+    submission = TestSubmission.objects.create(
+        test=test,
+        student=student,
+        answers=answers,
+        is_completed=True,
+    )
+    score = submission.calculate_score()
+    return JsonResponse({
+        "message": "Test topshirildi",
+        "score": score,
+        "total_marks": test.total_marks,
+    })
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_admin_dashboard(request):
+    if not request.user.is_authenticated or _user_role(request.user) != 'admin':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    from .models import Payment
+    users = CustomUser.objects.all()
+    students = Student.objects.select_related('user', 'group')
+    teachers = users.filter(role='teacher')
+    groups = Group.objects.all()
+
+    top_coins = [
+        {
+            "name": _user_display_name(s.user),
+            "group": s.group.name if s.group else "Guruhsiz",
+            "coins": s.total_coins,
+        }
+        for s in students.order_by('-total_coins')[:3]
+    ]
+
+    ranked = sorted(
+        [(s, _get_student_grade_average(s)) for s in students if _get_student_grade_average(s) > 0],
+        key=lambda x: x[1],
+        reverse=True,
+    )
+    top_grades = [
+        {
+            "name": _user_display_name(s.user),
+            "group": s.group.name if s.group else "Guruhsiz",
+            "average_grade": avg,
+        }
+        for s, avg in ranked[:3]
+    ]
+
+    recent_admissions = list(
+        AdmissionRequest.objects.filter(status='new').order_by('-created_at')[:5].values(
+            'full_name', 'course_name', 'status', 'message', 'created_at'
+        )
+    )
+
+    total_revenue = Payment.objects.aggregate(Sum('amount'))['amount__sum'] or 0
+
+    return JsonResponse({
+        "full_name": _user_display_name(request.user),
+        "total_users": users.count(),
+        "total_students": students.count(),
+        "total_teachers": teachers.count(),
+        "total_groups": groups.count(),
+        "total_coins": students.aggregate(Sum('total_coins'))['total_coins__sum'] or 0,
+        "new_admissions": AdmissionRequest.objects.filter(status='new').count(),
+        "total_revenue": str(total_revenue),
+        "top_students_coins": top_coins,
+        "top_students_grades": top_grades,
+        "recent_requests": [
+            {
+                "name": a['full_name'],
+                "course": a['course_name'],
+                "status": a['status'],
+                "message": a.get('message', ''),
+            }
+            for a in recent_admissions
+        ],
+    })
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_teacher_groups(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    groups = []
+    for g in request.user.teaching_groups.all().order_by('-start_date'):
+        students = []
+        for s in g.students.select_related('user').order_by('user__first_name'):
+            students.append({
+                "id": s.id,
+                "full_name": _user_display_name(s.user),
+                "student_id": s.student_id,
+                "total_coins": s.total_coins,
+                "average_grade": _get_student_grade_average(s),
+            })
+        groups.append({
+            "id": g.id,
+            "name": g.name,
+            "description": g.description,
+            "start_date": g.start_date.isoformat() if g.start_date else None,
+            "student_count": len(students),
+            "students": students,
+        })
+    return JsonResponse(groups, safe=False)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def api_teacher_tests(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    if request.method == "GET":
+        tests = Test.objects.filter(teacher=request.user).select_related('group').order_by('-created_at')
+        result = []
+        for test in tests:
+            result.append({
+                "id": test.id,
+                "title": test.title,
+                "description": test.description,
+                "group_id": test.group_id,
+                "group_name": test.group.name,
+                "duration": test.duration,
+                "total_marks": test.total_marks,
+                "question_count": test.questions.count(),
+                "is_active": test.is_active,
+                "deadline": test.deadline.isoformat() if test.deadline else None,
+                "created_at": test.created_at.isoformat(),
+            })
+        return JsonResponse(result, safe=False)
+
+    data = json.loads(request.body)
+    group = Group.objects.get(id=data.get('group_id'))
+    if group.teacher_id != request.user.id:
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    questions_data = data.get('questions', [])
+    if not questions_data:
+        return JsonResponse({"detail": "Kamida 1 ta savol kerak"}, status=400)
+
+    from django.utils.dateparse import parse_datetime
+    deadline = data.get('deadline')
+    parsed_deadline = parse_datetime(deadline) if deadline else None
+
+    test = Test.objects.create(
+        title=data.get('title', 'Test'),
+        description=data.get('description', ''),
+        teacher=request.user,
+        group=group,
+        duration=int(data.get('duration', 30)),
+        deadline=parsed_deadline,
+        is_active=True,
+    )
+
+    total_marks = 0
+    for i, q in enumerate(questions_data, start=1):
+        marks = int(q.get('marks', 1))
+        Question.objects.create(
+            test=test,
+            question_text=q.get('question_text', ''),
+            option_a=q.get('option_a', ''),
+            option_b=q.get('option_b', ''),
+            option_c=q.get('option_c', ''),
+            option_d=q.get('option_d', ''),
+            correct_answer=q.get('correct_answer', 'a'),
+            marks=marks,
+            order=i,
+        )
+        total_marks += marks
+
+    test.total_marks = total_marks
+    test.save()
+
+    return JsonResponse({
+        "message": "Test yaratildi",
+        "id": test.id,
+        "question_count": len(questions_data),
+        "total_marks": total_marks,
+    })

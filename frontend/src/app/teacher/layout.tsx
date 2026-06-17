@@ -1,20 +1,33 @@
 "use client";
 
-import { ReactNode } from "react";
-import Link from "next/link";
+import { ReactNode, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import DashboardClock from "@/components/DashboardClock";
 
 const menuItems = [
   { name: "Asosiy", path: "/teacher/dashboard/", icon: "🏠" },
   { name: "Guruhlarim", path: "/teacher/groups/", icon: "👥" },
   { name: "Baholash", path: "/teacher/grading/", icon: "📝" },
   { name: "Davomat", path: "/teacher/attendance/", icon: "📅" },
+  { name: "Testlar", path: "/teacher/tests/", icon: "📋" },
   { name: "Coinlar", path: "/teacher/coins/", icon: "🪙" },
-  { name: "Xabarlar", path: "/teacher/messages/", icon: "✉️" },
+  { name: "Xabarlar", path: "/teacher/messages/", icon: "💬" },
 ];
 
 export default function TeacherLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [user, setUser] = useState<{full_name: string, role: string} | null>(null);
+
+  useEffect(() => {
+    fetch('/api/me/')
+      .then(res => res.json())
+      .then(data => {
+        if (data.detail) { window.location.href = '/login/'; return; }
+        const name = data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.username;
+        if (name) setUser({ full_name: name, role: data.role });
+      })
+      .catch(() => window.location.href = '/login/');
+  }, []);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -30,7 +43,19 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
             Academy
           </h1>
-          <p className="text-xs text-slate-400 mt-1">O'qituvchi Paneli</p>
+          <p className="text-xs text-slate-400 mt-1 mb-4">O'qituvchi Paneli</p>
+          
+          {user && (
+            <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-lg">
+                {user.full_name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white line-clamp-1">{user.full_name}</p>
+                <p className="text-xs text-purple-400">O'qituvchi</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 py-6 px-4 space-y-2 overflow-y-auto">
@@ -51,7 +76,10 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
+        <div className="p-4 border-t border-white/10 space-y-3">
+          <div className="[&_div]:text-left [&_p:first-child]:text-lg">
+            <DashboardClock />
+          </div>
           <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-colors">
             <span>🚪</span> Chiqish
           </button>

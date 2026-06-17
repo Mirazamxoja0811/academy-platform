@@ -18,6 +18,7 @@ export default function AdminUsers() {
     group_id: ""
   });
   const [loading, setLoading] = useState(false);
+  const [filterRole, setFilterRole] = useState("all");
 
   const fetchUsers = async () => {
     try {
@@ -74,12 +75,24 @@ export default function AdminUsers() {
             <h1 className="text-3xl font-extrabold text-white drop-shadow-lg">Foydalanuvchilar</h1>
             <p className="text-slate-400 mt-2 text-sm">O'quvchilar va O'qituvchilar ro'yxati</p>
           </div>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-xl shadow-lg shadow-blue-500/30 transition-colors"
-          >
-            + Yangi qo'shish
-          </button>
+          <div className="flex items-center gap-4">
+            <select 
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="px-4 py-2 bg-slate-800 text-white rounded-xl border border-slate-700 outline-none"
+            >
+              <option value="all">Barchasi</option>
+              <option value="student">O'quvchilar</option>
+              <option value="teacher">O'qituvchilar</option>
+              <option value="admin">Adminlar</option>
+            </select>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-xl shadow-lg shadow-blue-500/30 transition-colors"
+            >
+              + Yangi qo'shish
+            </button>
+          </div>
         </div>
 
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl overflow-hidden">
@@ -93,7 +106,7 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u, i) => (
+              {users.filter(u => filterRole === "all" || u.role === filterRole).map((u, i) => (
                 <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                   <td className="py-5 text-white font-medium">{u.first_name} {u.last_name}</td>
                   <td className="py-5 text-slate-300">{u.username}</td>
