@@ -10,12 +10,22 @@ export default function TeacherCoins() {
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [students, setStudents] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+
+  const fetchHistory = () => {
+    fetch("/api/teacher/history/coins/")
+      .then(r => r.json())
+      .then(data => setHistory(data))
+      .catch(e => console.error(e));
+  };
 
   useEffect(() => {
     fetch("/api/students/")
       .then(r => r.json())
       .then(data => setStudents(data))
       .catch(e => console.error(e));
+
+    fetchHistory();
   }, []);
 
   const handleGive = (e: React.FormEvent) => {
@@ -40,6 +50,15 @@ export default function TeacherCoins() {
         setReason("");
         setSelectedStudent("");
         setTimeout(() => setShowToast(false), 3000);
+        fetchHistory();
+      });
+  };
+
+  const deleteCoin = (id: number) => {
+    if(!confirm("Bu coinni o'chirishni xohlaysizmi?")) return;
+    fetch(`/api/coins/${id}/delete/`, { method: "POST" })
+      .then(res => {
+        if(res.ok) fetchHistory();
       });
   };
 
@@ -103,6 +122,45 @@ export default function TeacherCoins() {
               Coin Yuborish 🚀
             </button>
           </form>
+        </div>
+
+        <div className="bg-gradient-to-br from-yellow-500/5 to-orange-500/5 backdrop-blur-xl border border-yellow-500/20 rounded-[2rem] p-10 shadow-2xl relative overflow-hidden mt-8">
+          <h2 className="text-xl font-bold text-yellow-500 mb-6 relative z-10">Tarix (Oxirgi tarqatilgan coinlar)</h2>
+          <div className="overflow-x-auto relative z-10">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="text-slate-400 border-b border-yellow-500/20">
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">O'quvchi</th>
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Guruh</th>
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Miqdor</th>
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Sabab</th>
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Sana</th>
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider text-right">Amal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((h, i) => (
+                  <tr key={i} className="border-b border-yellow-500/10 hover:bg-yellow-500/5 transition-colors">
+                    <td className="py-4 text-white">{h.student_name}</td>
+                    <td className="py-4 text-slate-400">{h.group_name}</td>
+                    <td className="py-4 font-black text-yellow-500">+{h.amount} 🪙</td>
+                    <td className="py-4 text-slate-300">{h.reason}</td>
+                    <td className="py-4 text-slate-400">{new Date(h.date).toLocaleDateString()}</td>
+                    <td className="py-4 text-right">
+                      <button onClick={() => deleteCoin(h.id)} className="text-red-400 hover:text-red-300 transition-colors text-sm font-medium">
+                        🗑 O'chirish
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {history.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-slate-500">Tarix bo'sh</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </motion.div>
 

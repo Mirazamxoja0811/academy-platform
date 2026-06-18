@@ -30,8 +30,8 @@ class GroupAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ['student_id', 'user', 'group', 'total_coins', 'enrollment_date']
-    list_filter = ['group', 'enrollment_date']
+    list_display = ['student_id', 'user', 'total_coins', 'enrollment_date']
+    list_filter = ['enrollment_date']
     search_fields = ['student_id', 'user__first_name', 'user__last_name']
     readonly_fields = ['total_coins']
 

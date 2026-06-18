@@ -5,12 +5,11 @@ from django.contrib.auth.forms import UserCreationForm
 class CustomUserCreationForm(UserCreationForm):
     group = forms.ModelChoiceField(
         queryset=Group.objects.all(),
-        required=False,
+        required=True,
         widget=forms.Select(attrs={'class': 'form-select'}),
-        label="Guruh",
-        help_text="Faqat o'quvchi uchun"
+        label="Guruh"
     )
-    
+
     class Meta:
         model = CustomUser
         fields = ['username', 'email', 'first_name', 'last_name', 'phone', 'role', 'date_of_birth', 'group']
@@ -73,9 +72,9 @@ class CustomUserEditForm(forms.ModelForm):
 class StudentForm(forms.ModelForm):
     class Meta:
         model = Student
-        fields = ['group', 'student_id']
+        fields = ['groups', 'student_id']
         widgets = {
-            'group': forms.Select(attrs={'class': 'form-select'}),
+            'groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
             'student_id': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
@@ -104,10 +103,9 @@ class CoinTransactionForm(forms.ModelForm):
 class GradeForm(forms.ModelForm):
     class Meta:
         model = Grade
-        fields = ['student', 'subject', 'grade', 'comment', 'date']
+        fields = ['student', 'grade', 'comment', 'date']
         widgets = {
             'student': forms.Select(attrs={'class': 'form-select'}),
-            'subject': forms.TextInput(attrs={'class': 'form-control'}),
             'grade': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 100}),
             'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
@@ -128,8 +126,9 @@ class AttendanceForm(forms.ModelForm):
 class MessageForm(forms.ModelForm):
     class Meta:
         model = Message
-        fields = ['content', 'group', 'message_type']
+        fields = ['title', 'content', 'group', 'message_type']
         widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
             'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'group': forms.Select(attrs={'class': 'form-select'}),
             'message_type': forms.Select(attrs={'class': 'form-select'}),

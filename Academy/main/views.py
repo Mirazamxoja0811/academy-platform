@@ -60,7 +60,11 @@ def _user_role(user):
 def api_users(request):
     if request.method == "GET":
         users = []
-        for user in CustomUser.objects.all().order_by('first_name', 'last_name'):
+        role_filter = request.GET.get('role', '')
+        qs = CustomUser.objects.all().order_by('first_name', 'last_name')
+        if role_filter:
+            qs = qs.filter(role=role_filter)
+        for user in qs:
             users.append({
                 'id': user.id,
                 'first_name': user.first_name,
@@ -72,13 +76,17 @@ def api_users(request):
         return JsonResponse(users, safe=False)
     elif request.method == "POST":
         data = json.loads(request.body)
-        group_id = data.get('group_id')
+        group_ids = data.get('group_ids', [])
         role = data.get('role', 'student')
 
-        if role == 'student' and group_id:
-            student_group = Group.objects.filter(id=group_id).first()
-            if student_group and student_group.students.count() >= student_group.max_seats:
-                return JsonResponse({"error": "Guruh to'lgan"}, status=400)
+        if role == 'student' and not group_ids:
+            return JsonResponse({"error": "O'quvchi kamida bitta guruh tanlashi kerak"}, status=400)
+
+        if role == 'student':
+            for gid in group_ids:
+                sg = Group.objects.filter(id=gid).first()
+                if sg and sg.students.count() >= sg.max_seats:
+                    return JsonResponse({"error": f"Guruh to'lgan: {sg.name}"}, status=400)
 
         user = CustomUser.objects.create_user(
             username=data.get('username'),
@@ -92,31 +100,45 @@ def api_users(request):
         if dob:
             user.date_of_birth = dob
             user.save()
-            
+
         if user.role == 'student':
-            student_group = Group.objects.filter(id=group_id).first() if group_id else None
-            Student.objects.create(user=user, student_id=f"STU{user.id:04d}", group=student_group)
-        elif user.role == 'teacher' and group_id:
-            teacher_group = Group.objects.filter(id=group_id).first()
-            if teacher_group:
-                teacher_group.teacher = user
-                teacher_group.save()
-                
+            student = Student.objects.create(user=user, student_id=f"STU{user.id:04d}")
+            if group_ids:
+                groups_qs = Group.objects.filter(id__in=group_ids)
+                student.groups.set(groups_qs)
+        elif user.role == 'teacher' and group_ids:
+            Group.objects.filter(id__in=group_ids).update(teacher=user)
+
         return JsonResponse({"message": "Foydalanuvchi qo'shildi", "id": user.id})
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_user_delete(request, user_id):
+    if not request.user.is_authenticated or request.user.role != 'admin':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    user = get_object_or_404(CustomUser, id=user_id)
+
+    if user.is_superuser:
+        return JsonResponse({"error": "Superuser o'chirib bo'lmadi"}, status=400)
+
+    user.delete()
+    return JsonResponse({"message": "Foydalanuvchi o'chirildi"})
+
 
 @csrf_exempt
 @require_http_methods(["GET"])
 def api_students(request):
-    qs = Student.objects.select_related('user', 'group').all()
+    qs = Student.objects.select_related('user').prefetch_related('groups').all()
     if request.user.is_authenticated and request.user.role == 'teacher':
-        qs = qs.filter(group__teacher=request.user)
+        qs = qs.filter(groups__teacher=request.user).distinct()
     data = []
     for s in qs:
         data.append({
             "id": s.id,
             "full_name": _user_display_name(s.user),
-            "group_id": s.group_id,
-            "group_name": s.group.name if s.group else "Guruhsiz",
+            "group_ids": [g.id for g in s.groups.all()],
+            "group_name": ", ".join([g.name for g in s.groups.all()]) if s.groups.exists() else "Guruhsiz",
             "student_id": s.student_id,
             "total_coins": s.total_coins,
         })
@@ -126,11 +148,15 @@ def api_students(request):
 @require_http_methods(["GET", "POST"])
 def api_groups(request):
     if request.method == "GET":
-        qs = Group.objects.all()
+        qs = Group.objects.all().prefetch_related('students__user')
         if request.user.is_authenticated and request.user.role == 'teacher':
             qs = qs.filter(teacher=request.user)
         groups = []
         for g in qs:
+            students = [
+                {"id": s.id, "name": s.user.get_full_name(), "student_id": s.student_id}
+                for s in g.students.all()
+            ]
             groups.append({
                 'id': g.id,
                 'name': g.name,
@@ -138,6 +164,8 @@ def api_groups(request):
                 'start_date': g.start_date.isoformat() if g.start_date else None,
                 'student_count': g.students.count(),
                 'max_seats': g.max_seats,
+                'teacher_name': g.teacher.get_full_name() if g.teacher else "Biriktirilmagan",
+                'students': students,
             })
         return JsonResponse(groups, safe=False)
     elif request.method == "POST":
@@ -984,19 +1012,20 @@ def teacher_grading_list(request):
 def teacher_grading_create(request):
     from .forms import GradeForm
     teacher_groups = Group.objects.filter(teacher=request.user)
-    
+
     if request.method == 'POST':
         form = GradeForm(request.POST)
         if form.is_valid():
             grade = form.save(commit=False)
             grade.teacher = request.user
+            grade.subject = grade.student.group.name if grade.student.group else "Umumiy"
             grade.save()
             messages.success(request, 'Baho qo\'yildi!')
             return redirect('teacher_grading_list')
     else:
         form = GradeForm()
         form.fields['student'].queryset = Student.objects.filter(group__in=teacher_groups)
-    
+
     return render(request, 'teacher/grading_form.html', {'form': form})
 
 @teacher_required
@@ -1473,6 +1502,37 @@ def api_me(request):
         "last_name": user.last_name,
         "full_name": _user_display_name(user),
         "role": _user_role(user),
+        "avatar": user.avatar.url if user.avatar else None,
+        "phone": user.phone,
+        "email": user.email,
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_account_settings(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Not authenticated"}, status=401)
+
+    user = request.user
+    user.first_name = request.POST.get('first_name', user.first_name)
+    user.last_name = request.POST.get('last_name', user.last_name)
+    user.phone = request.POST.get('phone', user.phone)
+    user.email = request.POST.get('email', user.email)
+
+    if 'avatar' in request.FILES:
+        user.avatar = request.FILES['avatar']
+
+    user.save()
+
+    return JsonResponse({
+        "message": "Sozlamalar saqlandi",
+        "id": user.id,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "phone": user.phone,
+        "email": user.email,
+        "avatar": user.avatar.url if user.avatar else None
     })
 
 
@@ -1488,8 +1548,11 @@ def api_student_dashboard(request):
 
     position = 0
     total_students = 0
-    if student.group:
-        students_in_group = list(Student.objects.filter(group=student.group))
+    student_groups = list(student.groups.all())
+    
+    if student_groups:
+        main_group = student_groups[0]
+        students_in_group = list(Student.objects.filter(groups=main_group).distinct())
         students_in_group.sort(key=lambda s: _get_student_grade_average(s), reverse=True)
         try:
             position = students_in_group.index(student) + 1
@@ -1511,7 +1574,7 @@ def api_student_dashboard(request):
         "total_coins": student.total_coins,
         "rank": position,
         "total_students": total_students,
-        "group_name": student.group.name if student.group else "Guruhsiz",
+        "group_name": ", ".join([g.name for g in student_groups]) if student_groups else "Guruhsiz",
         "grades": recent_grades,
         "attendances": recent_attendances,
     })
@@ -1558,7 +1621,7 @@ def api_teacher_dashboard(request):
     teacher = request.user
     groups = teacher.teaching_groups.all()
     groups_count = groups.count()
-    total_students = Student.objects.filter(group__teacher=teacher).count()
+    total_students = Student.objects.filter(groups__teacher=teacher).distinct().count()
     coins_given = CoinTransaction.objects.filter(given_by=teacher).aggregate(Sum('amount'))['amount__sum'] or 0
 
     groups_data = [
@@ -1952,3 +2015,218 @@ def api_teacher_tests(request):
         "question_count": len(questions_data),
         "total_marks": total_marks,
     })
+
+
+# ================= DELETE APIS =================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_grade_delete(request, grade_id):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    grade = get_object_or_404(Grade, id=grade_id)
+    if grade.teacher.id != request.user.id:
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    grade.delete()
+    return JsonResponse({"message": "Baho o'chirildi"})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_attendance_delete(request, attendance_id):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    attendance = get_object_or_404(Attendance, id=attendance_id)
+    if attendance.teacher.id != request.user.id:
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    attendance.delete()
+    return JsonResponse({"message": "Davomat o'chirildi"})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_coin_delete(request, transaction_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    transaction = get_object_or_404(CoinTransaction, id=transaction_id)
+
+    if request.user.role == 'teacher' and transaction.given_by.id != request.user.id:
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    elif request.user.role != 'admin' and request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    transaction.delete()
+    return JsonResponse({"message": "Coin o'chirildi", "balance": transaction.student.total_coins})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_admin_grade_delete(request, grade_id):
+    if not request.user.is_authenticated or request.user.role != 'admin':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    grade = get_object_or_404(Grade, id=grade_id)
+    grade.delete()
+    return JsonResponse({"message": "Baho o'chirildi"})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_admin_attendance_delete(request, attendance_id):
+    if not request.user.is_authenticated or request.user.role != 'admin':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    attendance = get_object_or_404(Attendance, id=attendance_id)
+    attendance.delete()
+    return JsonResponse({"message": "Davomat o'chirildi"})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_admin_coin_delete(request, transaction_id):
+    if not request.user.is_authenticated or request.user.role != 'admin':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    transaction = get_object_or_404(CoinTransaction, id=transaction_id)
+    transaction.delete()
+    return JsonResponse({"message": "Coin o'chirildi", "balance": transaction.student.total_coins})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_students_coins_delete_all(request, student_id):
+    if not request.user.is_authenticated or request.user.role != 'admin':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    student = get_object_or_404(Student, id=student_id)
+    student.coin_transactions.all().delete()
+    student.total_coins = 0
+    student.save()
+    return JsonResponse({"message": "Barcha coinlar o'chirildi"})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_students_attendance_delete_all(request, student_id):
+    if not request.user.is_authenticated or request.user.role != 'admin':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    student = get_object_or_404(Student, id=student_id)
+    student.attendances.all().delete()
+    return JsonResponse({"message": "Barcha davomatlar o'chirildi"})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_students_grades_delete_all(request, student_id):
+    if not request.user.is_authenticated or request.user.role != 'admin':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    student = get_object_or_404(Student, id=student_id)
+    student.grades.all().delete()
+    return JsonResponse({"message": "Barcha baholar o'chirildi"})
+
+
+# ================= ENROLLMENT APIS =================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_student_enroll_group(request):
+    if not request.user.is_authenticated or request.user.role != 'student':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    student = request.user.student_profile
+    data = json.loads(request.body)
+    group_id = data.get('group_id')
+
+    group = get_object_or_404(Group, id=group_id)
+
+    if group.students.count() >= group.max_seats:
+        return JsonResponse({"error": "Guruh to'lgan"}, status=400)
+
+    if student.group_id == group_id or student.additional_groups.filter(id=group_id).exists():
+        return JsonResponse({"error": "Siz allaqachon bu guruhda qayd etilgansiz"}, status=400)
+
+    student.additional_groups.add(group)
+    return JsonResponse({
+        "message": "Guruhga qo'shildi",
+        "groups": [g.name for g in student.get_all_groups()]
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_student_unenroll_group(request, group_id):
+    if not request.user.is_authenticated or request.user.role != 'student':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+
+    student = request.user.student_profile
+    group = get_object_or_404(Group, id=group_id)
+
+    if student.group_id == group_id:
+        return JsonResponse({"error": "Asosiy guruhdan chiqib bo'lmadi"}, status=400)
+
+    student.additional_groups.remove(group)
+    return JsonResponse({
+        "message": "Guruhdan chiqildi",
+        "groups": [g.name for g in student.get_all_groups()]
+    })
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_teacher_history_grades(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    grades = Grade.objects.filter(teacher=request.user).select_related('student__user').prefetch_related('student__groups').order_by('-date', '-id')[:50]
+    data = []
+    for g in grades:
+        data.append({
+            "id": g.id,
+            "student_name": _user_display_name(g.student.user),
+            "group_name": ", ".join([grp.name for grp in g.student.groups.all()]) if g.student.groups.exists() else "Guruhsiz",
+            "subject": g.subject,
+            "grade": g.grade,
+            "date": g.date.isoformat() if hasattr(g.date, 'isoformat') else g.date
+        })
+    return JsonResponse(data, safe=False)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_teacher_history_attendance(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    attendances = Attendance.objects.filter(teacher=request.user).select_related('student__user', 'group').order_by('-date', '-id')[:50]
+    data = []
+    for a in attendances:
+        data.append({
+            "id": a.id,
+            "student_name": _user_display_name(a.student.user),
+            "group_name": a.group.name if a.group else "",
+            "status": a.status,
+            "date": a.date.isoformat() if hasattr(a.date, 'isoformat') else a.date,
+            "note": a.note
+        })
+    return JsonResponse(data, safe=False)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_teacher_history_coins(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    coins = CoinTransaction.objects.filter(given_by=request.user).select_related('student__user').order_by('-date', '-id')[:50]
+    data = []
+    for c in coins:
+        data.append({
+            "id": c.id,
+            "student_name": _user_display_name(c.student.user),
+            "group_name": ", ".join([grp.name for grp in c.student.groups.all()]) if c.student.groups.exists() else "Guruhsiz",
+            "amount": c.amount,
+            "reason": c.reason,
+            "date": c.date.isoformat() if hasattr(c.date, 'isoformat') else c.date
+        })
+    return JsonResponse(data, safe=False)

@@ -41,19 +41,22 @@ class Group(models.Model):
 
 class Student(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='student_profile')
-    group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
+    groups = models.ManyToManyField(Group, blank=True, related_name='students')
     total_coins = models.IntegerField(default=0)
     student_id = models.CharField(max_length=20, unique=True)
     enrollment_date = models.DateField(default=timezone.now)
-    
+
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.student_id}"
-    
+
+    def get_all_groups(self):
+        return list(self.groups.all())
+
     def update_coins(self):
         total = self.coin_transactions.aggregate(models.Sum('amount'))['amount__sum'] or 0
         self.total_coins = total
         self.save()
-    
+
     class Meta:
         ordering = ['-total_coins']
 

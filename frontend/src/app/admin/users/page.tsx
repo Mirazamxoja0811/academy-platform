@@ -15,7 +15,7 @@ export default function AdminUsers() {
     role: "student",
     phone: "",
     date_of_birth: "",
-    group_id: ""
+    group_ids: [] as number[]
   });
   const [loading, setLoading] = useState(false);
   const [filterRole, setFilterRole] = useState("all");
@@ -45,6 +45,22 @@ export default function AdminUsers() {
     fetchGroups();
   }, []);
 
+  const handleDelete = async (userId: number) => {
+    if (!confirm("Bu foydalanuvchini o'chirib tashlashni tasdiqlaysizmi?")) return;
+    try {
+      const res = await fetch(`/api/users/${userId}/delete/`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        fetchUsers();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // We don't need handleGroupChange anymore since we handle it in checkbox onChange
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -56,7 +72,7 @@ export default function AdminUsers() {
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ first_name: "", last_name: "", username: "", password: "", role: "student", phone: "", date_of_birth: "", group_id: "" });
+        setFormData({ first_name: "", last_name: "", username: "", password: "", role: "student", phone: "", date_of_birth: "", group_ids: [] });
         fetchUsers();
       } else {
         const errorData = await res.json();
@@ -106,6 +122,7 @@ export default function AdminUsers() {
                 <th className="pb-4 font-medium uppercase text-xs tracking-wider">Username</th>
                 <th className="pb-4 font-medium uppercase text-xs tracking-wider">Rol</th>
                 <th className="pb-4 font-medium uppercase text-xs tracking-wider text-right">Telefon</th>
+                <th className="pb-4 font-medium uppercase text-xs tracking-wider text-right">Amal</th>
               </tr>
             </thead>
             <tbody>
@@ -119,6 +136,11 @@ export default function AdminUsers() {
                     </span>
                   </td>
                   <td className="py-5 text-right text-slate-400">{u.phone}</td>
+                  <td className="py-5 text-right">
+                    <button onClick={() => handleDelete(u.id)} className="text-red-400 hover:text-red-300 transition-colors text-sm font-medium">
+                      O'chirish
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -184,18 +206,38 @@ export default function AdminUsers() {
                 
                 {["student", "teacher"].includes(formData.role) && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                    <label className="block text-sm text-slate-400 mb-1">Guruhni tanlang (O'quvchi va O'qituvchilar uchun)</label>
-                    <select value={formData.group_id} onChange={e => setFormData({...formData, group_id: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500">
-                      <option value="">Guruhsiz</option>
+                    <label className="block text-sm text-slate-400 mb-1">Guruhlarni tanlang (Kamida 1 ta majburiy)</label>
+                    <div className="max-h-40 overflow-y-auto space-y-2 bg-slate-900 border border-slate-700 rounded-xl p-4">
                       {groups.map((g, i) => {
                         const isFull = formData.role === "student" && g.student_count >= g.max_seats;
+                        const hasTeacher = g.teacher_name !== "Biriktirilmagan";
                         return (
-                          <option key={i} value={g.id} disabled={isFull}>
-                            {g.name} {isFull ? "(To'lgan)" : ""}
-                          </option>
+                          <label key={i} className={`flex items-center gap-3 text-sm ${isFull ? 'opacity-50' : 'cursor-pointer text-white'}`}>
+                            <input
+                              type="checkbox"
+                              disabled={isFull}
+                              checked={formData.group_ids.includes(g.id)}
+                              onChange={(e) => {
+                                let newIds = [...formData.group_ids];
+                                if (e.target.checked) {
+                                  newIds.push(g.id);
+                                  if (formData.role === "teacher" && hasTeacher) {
+                                    if (!confirm(`Bu guruhda allaqachon "${g.teacher_name}" o'rgatamoqda.\n\nO'rniga qo'ysizmi?`)) {
+                                      return;
+                                    }
+                                  }
+                                } else {
+                                  newIds = newIds.filter(id => id !== g.id);
+                                }
+                                setFormData({...formData, group_ids: newIds});
+                              }}
+                              className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                            />
+                            {g.name} {isFull ? "(To'lgan)" : ""} {hasTeacher && formData.role === "teacher" ? `(${g.teacher_name})` : ""}
+                          </label>
                         );
                       })}
-                    </select>
+                    </div>
                   </motion.div>
                 )}
 

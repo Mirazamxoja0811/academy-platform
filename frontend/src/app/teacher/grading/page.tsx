@@ -8,6 +8,14 @@ export default function TeacherGrading() {
   const [showToast, setShowToast] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+
+  const fetchHistory = () => {
+    fetch("/api/teacher/history/grades/")
+      .then(r => r.json())
+      .then(data => setHistory(data))
+      .catch(e => console.error(e));
+  };
 
   useEffect(() => {
     fetch("/api/students/")
@@ -22,10 +30,12 @@ export default function TeacherGrading() {
         if (data.length > 0) setSelectedGroup(String(data[0].id));
       })
       .catch(e => console.error(e));
+
+    fetchHistory();
   }, []);
 
   const filteredStudents = selectedGroup
-    ? students.filter(s => String(s.group_id) === selectedGroup)
+    ? students.filter(s => s.group_ids && s.group_ids.includes(Number(selectedGroup)))
     : students;
 
   const handleGrade = (id: number, grade: number) => {
@@ -53,6 +63,15 @@ export default function TeacherGrading() {
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);
         setStudents(students.map(s => ({ ...s, grade: null })));
+        fetchHistory();
+      });
+  };
+
+  const deleteGrade = (id: number) => {
+    if(!confirm("Bu bahoni o'chirishni xohlaysizmi?")) return;
+    fetch(`/api/grades/${id}/delete/`, { method: "POST" })
+      .then(res => {
+        if(res.ok) fetchHistory();
       });
   };
 
@@ -121,6 +140,43 @@ export default function TeacherGrading() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl mt-8">
+          <h2 className="text-xl font-bold text-white mb-6">Tarix (Oxirgi qo'yilgan baholar)</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="text-slate-400 border-b border-white/10">
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">O'quvchi</th>
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Guruh</th>
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Baho</th>
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Sana</th>
+                  <th className="pb-4 font-medium uppercase text-xs tracking-wider text-right">Amal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((h, i) => (
+                  <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="py-4 text-white">{h.student_name}</td>
+                    <td className="py-4 text-slate-400">{h.group_name}</td>
+                    <td className="py-4 font-bold text-indigo-400">{h.grade}</td>
+                    <td className="py-4 text-slate-400">{new Date(h.date).toLocaleDateString()}</td>
+                    <td className="py-4 text-right">
+                      <button onClick={() => deleteGrade(h.id)} className="text-red-400 hover:text-red-300 transition-colors text-sm font-medium">
+                        🗑 O'chirish
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {history.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-slate-500">Tarix bo'sh</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </motion.div>
 
