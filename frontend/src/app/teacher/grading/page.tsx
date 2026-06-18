@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 
 export default function TeacherGrading() {
   const [selectedGroup, setSelectedGroup] = useState("");
-  const [subject, setSubject] = useState("Ingliz tili");
   const [showToast, setShowToast] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
@@ -39,7 +38,7 @@ export default function TeacherGrading() {
       .map(s => ({
         student_id: s.id,
         grade: s.grade,
-        subject,
+        subject: "Umumiy",
       }));
 
     if (gradesToSave.length === 0) return;
@@ -47,7 +46,7 @@ export default function TeacherGrading() {
     fetch('/api/teacher/batch_grading/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grades: gradesToSave, subject }),
+      body: JSON.stringify({ grades: gradesToSave, subject: "Umumiy" }),
     })
       .then(res => res.json())
       .then(() => {
@@ -66,13 +65,6 @@ export default function TeacherGrading() {
             <p className="text-slate-400 mt-2 text-sm">O'quvchilarga bugungi dars uchun baho qo'yish</p>
           </div>
           <div className="flex gap-4 flex-wrap">
-            <input
-              type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="Fan nomi"
-              className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl focus:outline-none"
-            />
             <select
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}

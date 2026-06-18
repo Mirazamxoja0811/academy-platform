@@ -72,12 +72,20 @@ def api_users(request):
         return JsonResponse(users, safe=False)
     elif request.method == "POST":
         data = json.loads(request.body)
+        group_id = data.get('group_id')
+        role = data.get('role', 'student')
+
+        if role == 'student' and group_id:
+            student_group = Group.objects.filter(id=group_id).first()
+            if student_group and student_group.students.count() >= student_group.max_seats:
+                return JsonResponse({"error": "Guruh to'lgan"}, status=400)
+
         user = CustomUser.objects.create_user(
             username=data.get('username'),
             password=data.get('password', '1234'),
             first_name=data.get('first_name', ''),
             last_name=data.get('last_name', ''),
-            role=data.get('role', 'student'),
+            role=role,
             phone=data.get('phone', '')
         )
         dob = data.get('date_of_birth')
@@ -86,9 +94,14 @@ def api_users(request):
             user.save()
             
         if user.role == 'student':
-            group_id = data.get('group_id')
             student_group = Group.objects.filter(id=group_id).first() if group_id else None
             Student.objects.create(user=user, student_id=f"STU{user.id:04d}", group=student_group)
+        elif user.role == 'teacher' and group_id:
+            teacher_group = Group.objects.filter(id=group_id).first()
+            if teacher_group:
+                teacher_group.teacher = user
+                teacher_group.save()
+                
         return JsonResponse({"message": "Foydalanuvchi qo'shildi", "id": user.id})
 
 @csrf_exempt
@@ -124,6 +137,7 @@ def api_groups(request):
                 'description': g.description,
                 'start_date': g.start_date.isoformat() if g.start_date else None,
                 'student_count': g.students.count(),
+                'max_seats': g.max_seats,
             })
         return JsonResponse(groups, safe=False)
     elif request.method == "POST":
@@ -135,6 +149,7 @@ def api_groups(request):
             name=data.get('name'),
             description=data.get('description', ''),
             start_date=data.get('start_date') or date.today(),
+            max_seats=int(data.get('max_seats', 15)),
             teacher=teacher,
         )
         return JsonResponse({"message": "Guruh qo'shildi", "id": group.id})

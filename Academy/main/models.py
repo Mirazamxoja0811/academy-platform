@@ -29,6 +29,7 @@ class Group(models.Model):
     teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='teaching_groups', limit_choices_to={'role': 'teacher'})
     start_date = models.DateField()
     end_date = models.DateField(blank=True, null=True)
+    max_seats = models.IntegerField(default=15)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

@@ -9,7 +9,8 @@ export default function AdminGroups() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    start_date: ""
+    start_date: "",
+    max_seats: 15
   });
   const [loading, setLoading] = useState(false);
 
@@ -38,7 +39,7 @@ export default function AdminGroups() {
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ name: "", description: "", start_date: "" });
+        setFormData({ name: "", description: "", start_date: "", max_seats: 15 });
         fetchGroups();
       }
     } catch (e) {
@@ -71,6 +72,7 @@ export default function AdminGroups() {
               <tr className="text-slate-400 border-b border-white/10">
                 <th className="pb-4 font-medium uppercase text-xs tracking-wider">Guruh Nomi</th>
                 <th className="pb-4 font-medium uppercase text-xs tracking-wider">Tavsif</th>
+                <th className="pb-4 font-medium uppercase text-xs tracking-wider">O'quvchilar</th>
                 <th className="pb-4 font-medium uppercase text-xs tracking-wider text-right">Boshlanish Sanasi</th>
               </tr>
             </thead>
@@ -79,6 +81,7 @@ export default function AdminGroups() {
                 <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                   <td className="py-5 text-white font-medium">{g.name}</td>
                   <td className="py-5 text-slate-300">{g.description}</td>
+                  <td className="py-5 text-slate-300">{g.student_count} / {g.max_seats}</td>
                   <td className="py-5 text-right text-slate-400">{g.start_date}</td>
                 </tr>
               ))}
@@ -113,6 +116,10 @@ export default function AdminGroups() {
                 <div>
                   <label className="block text-sm text-slate-400 mb-1">Boshlanish Sanasi</label>
                   <input type="date" required value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Maksimal o'rinlar soni</label>
+                  <input type="number" min="1" required value={formData.max_seats} onChange={e => setFormData({...formData, max_seats: parseInt(e.target.value) || 15})} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500" />
                 </div>
                 <div className="flex gap-4 mt-6">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors">Bekor qilish</button>

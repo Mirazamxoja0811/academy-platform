@@ -58,6 +58,9 @@ export default function AdminUsers() {
         setIsModalOpen(false);
         setFormData({ first_name: "", last_name: "", username: "", password: "", role: "student", phone: "", date_of_birth: "", group_id: "" });
         fetchUsers();
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || "Xatolik yuz berdi");
       }
     } catch (e) {
       console.error(e);
@@ -179,14 +182,19 @@ export default function AdminUsers() {
                   </select>
                 </div>
                 
-                {formData.role === "student" && (
+                {["student", "teacher"].includes(formData.role) && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                    <label className="block text-sm text-slate-400 mb-1">Guruhni tanlang</label>
+                    <label className="block text-sm text-slate-400 mb-1">Guruhni tanlang (O'quvchi va O'qituvchilar uchun)</label>
                     <select value={formData.group_id} onChange={e => setFormData({...formData, group_id: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500">
                       <option value="">Guruhsiz</option>
-                      {groups.map((g, i) => (
-                        <option key={i} value={g.id}>{g.name}</option>
-                      ))}
+                      {groups.map((g, i) => {
+                        const isFull = formData.role === "student" && g.student_count >= g.max_seats;
+                        return (
+                          <option key={i} value={g.id} disabled={isFull}>
+                            {g.name} {isFull ? "(To'lgan)" : ""}
+                          </option>
+                        );
+                      })}
                     </select>
                   </motion.div>
                 )}
