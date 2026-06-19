@@ -160,11 +160,17 @@ def api_groups(request):
             groups.append({
                 'id': g.id,
                 'name': g.name,
-                'description': g.description,
+                'course': g.course.name if g.course else "Biriktirilmagan",
+                'room': g.room.name if g.room else "Biriktirilmagan",
+                'schedule_days': g.schedule_days,
+                'start_time': g.start_time.strftime('%H:%M') if g.start_time else None,
+                'end_time': g.end_time.strftime('%H:%M') if g.end_time else None,
+                'status': g.get_status_display(),
                 'start_date': g.start_date.isoformat() if g.start_date else None,
                 'student_count': g.students.count(),
                 'max_seats': g.max_seats,
                 'teacher_name': g.teacher.get_full_name() if g.teacher else "Biriktirilmagan",
+                'teacher_id': g.teacher.id if g.teacher else None,
                 'students': students,
             })
         return JsonResponse(groups, safe=False)
@@ -173,12 +179,22 @@ def api_groups(request):
         from datetime import date
         teacher_id = data.get('teacher_id')
         teacher = CustomUser.objects.filter(id=teacher_id, role='teacher').first() if teacher_id else None
+        
+        course_id = data.get('course_id')
+        course = Course.objects.filter(id=course_id).first() if course_id else None
+        
+        room_id = data.get('room_id')
+        room = Room.objects.filter(id=room_id).first() if room_id else None
+
         group = Group.objects.create(
             name=data.get('name'),
-            description=data.get('description', ''),
+            course=course,
+            room=room,
+            schedule_days=data.get('schedule_days', ''),
             start_date=data.get('start_date') or date.today(),
             max_seats=int(data.get('max_seats', 15)),
             teacher=teacher,
+            status=data.get('status', 'active')
         )
         return JsonResponse({"message": "Guruh qo'shildi", "id": group.id})
 
@@ -195,8 +211,32 @@ def api_admissions(request):
             phone=data.get('phone', ''),
             course_name=data.get('course_name', ''),
             message=data.get('message', ''),
-        )
         return JsonResponse({"message": "Qabul qo'shildi", "id": admission.id})
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def api_courses(request):
+    if request.method == "GET":
+        qs = Course.objects.all()
+        data = [{"id": c.id, "name": c.name, "price_per_month": c.price_per_month} for c in qs]
+        return JsonResponse(data, safe=False)
+    elif request.method == "POST":
+        data = json.loads(request.body)
+        c = Course.objects.create(name=data.get('name'), price_per_month=data.get('price_per_month', 0))
+        return JsonResponse({"message": "Kurs qo'shildi", "id": c.id})
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def api_rooms(request):
+    if request.method == "GET":
+        qs = Room.objects.all()
+        data = [{"id": r.id, "name": r.name, "capacity": r.capacity} for r in qs]
+        return JsonResponse(data, safe=False)
+    elif request.method == "POST":
+        data = json.loads(request.body)
+        r = Room.objects.create(name=data.get('name'), capacity=data.get('capacity', 20))
+        return JsonResponse({"message": "Xona qo'shildi", "id": r.id})
+
 
 
 def _get_student_grade_average(student):

@@ -1,99 +1,110 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import DashboardClock from "@/components/DashboardClock";
-
-const menuItems = [
-  { name: "Asosiy", path: "/admin/dashboard/", icon: "🏠" },
-  { name: "Foydalanuvchilar", path: "/admin/users/", icon: "👥" },
-  { name: "Guruhlar", path: "/admin/groups/", icon: "📚" },
-  { name: "Qabul", path: "/admin/admissions/", icon: "📩" },
-  { name: "Moliya", path: "/admin/finance/", icon: "💰" },
-  { name: "Sozlamalar", path: "/admin/settings/", icon: "⚙️" },
-];
+import { motion } from "framer-motion";
+import { LayoutDashboard, Users, BookOpen, Layers, Settings, LogOut, Banknote } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<{full_name: string, role: string} | null>(null);
 
-  useEffect(() => {
-    fetch('/api/me/')
-      .then(res => res.json())
-      .then(data => {
-        if (data.detail) { window.location.href = '/login/'; return; }
-        const name = data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.username;
-        if (name) setUser({ full_name: name, role: data.role });
-      })
-      .catch(() => window.location.href = '/login/');
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = "/login/";
-  };
-
+  const menuItems = [
+    { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
+    { name: "Foydalanuvchilar", icon: Users, path: "/admin/users" },
+    { name: "Guruhlar", icon: Layers, path: "/admin/groups" },
+    { name: "Moliya", icon: Banknote, path: "/admin/finance" },
+    { name: "Kurslar", icon: BookOpen, path: "/admin/courses" },
+    { name: "Sozlamalar", icon: Settings, path: "/admin/settings" },
+  ];
 
   return (
-    <div className="flex h-screen bg-[#0f172a] text-white overflow-hidden font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex font-sans overflow-hidden">
+      {/* Background Orbs */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-900/20 blur-[120px]"></div>
+        <div className="absolute bottom-[10%] -right-[10%] w-[40%] h-[60%] rounded-full bg-purple-900/20 blur-[120px]"></div>
+      </div>
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white/5 border-r border-white/10 backdrop-blur-xl flex flex-col relative z-20">
-        <div className="p-6 border-b border-white/10">
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-rose-400 to-orange-400">
-            Academy
+      <aside className="w-72 bg-slate-900/50 backdrop-blur-xl border-r border-slate-800/50 flex flex-col z-10 relative">
+        <div className="p-8">
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+            Mirazam
           </h1>
-          <p className="text-xs text-slate-400 mt-1 mb-4">Admin Paneli</p>
-          
-          {user && (
-            <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-bold shadow-lg">
-                {user.full_name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="text-sm font-bold text-white line-clamp-1">{user.full_name}</p>
-                <p className="text-xs text-orange-400">Admin</p>
-              </div>
-            </div>
-          )}
+          <p className="text-slate-400 text-sm mt-1">Admin Boshqaruvi</p>
         </div>
 
-        <nav className="flex-1 py-6 px-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
           {menuItems.map((item) => {
-            const isActive = pathname === item.path || pathname === item.path.slice(0, -1);
+            const isActive = pathname === item.path;
+            const Icon = item.icon;
             return (
-              <a key={item.path} href={item.path} className="block">
-                <div className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
-                  isActive 
-                    ? "bg-gradient-to-r from-rose-500/20 to-orange-500/20 border border-rose-500/30 text-white shadow-lg shadow-rose-500/10" 
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                }`}>
-                  <span className="text-xl">{item.icon}</span>
-                  <span className="font-medium">{item.name}</span>
-                </div>
-              </a>
+              <Link key={item.path} href={item.path}>
+                <motion.div
+                  whileHover={{ scale: 1.02, x: 5 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all cursor-pointer relative overflow-hidden group ${
+                    isActive 
+                      ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] border border-white/5" 
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeIndicator"
+                      className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-blue-400 to-purple-500 rounded-r-full"
+                    />
+                  )}
+                  <Icon className={`w-5 h-5 ${isActive ? "text-blue-400" : "group-hover:text-purple-400 transition-colors"}`} />
+                  <span className="font-medium text-[15px]">{item.name}</span>
+                </motion.div>
+              </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/10 space-y-3">
-          <div className="[&_div]:text-left [&_p:first-child]:text-lg">
-            <DashboardClock />
-          </div>
-          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-colors">
-            <span>🚪</span> Chiqish
-          </button>
+        <div className="p-4 mt-auto">
+          <Link href="/login">
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all cursor-pointer"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="font-medium">Chiqish</span>
+            </motion.div>
+          </Link>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 relative overflow-y-auto overflow-x-hidden">
-        {/* Background Blobs */}
-        <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-rose-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob pointer-events-none" />
-        <div className="absolute bottom-[20%] left-[-10%] w-96 h-96 bg-orange-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000 pointer-events-none" />
-        <div className="absolute top-[40%] left-[40%] w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000 pointer-events-none" />
-        
-        <div className="relative z-10 min-h-full">
-          {children}
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden z-10 relative">
+        <header className="h-20 bg-slate-900/30 backdrop-blur-md border-b border-slate-800/50 flex items-center justify-between px-10 sticky top-0 z-20">
+          <h2 className="text-xl font-semibold text-white">
+            {menuItems.find(i => i.path === pathname)?.name || "Boshqaruv"}
+          </h2>
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-medium text-white">Mirazamxoja</p>
+              <p className="text-xs text-slate-400">Asosiy Admin</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-[2px]">
+              <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
+                <span className="font-bold text-sm text-white">MX</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            {children}
+          </motion.div>
         </div>
       </main>
     </div>

@@ -1,239 +1,236 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus, Search, Trash2, Edit, X, Users, BookOpen, Clock, CalendarDays, MapPin } from "lucide-react";
 
-export default function AdminGroups() {
+export default function GroupsPage() {
   const [groups, setGroups] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    start_date: "",
-    max_seats: 15,
-    teacher_id: ""
+    name: "", course_id: "", teacher_id: "", room_id: "", 
+    schedule_days: "", start_time: "", end_time: "",
+    start_date: "", max_seats: 15, status: "active"
   });
-  const [loading, setLoading] = useState(false);
-
-  const fetchGroups = async () => {
-    try {
-      const res = await fetch("/api/groups/");
-      const data = await res.json();
-      setGroups(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const fetchTeachers = async () => {
-    try {
-      const res = await fetch("/api/users/?role=teacher");
-      const data = await res.json();
-      setTeachers(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   useEffect(() => {
-    fetchGroups();
-    fetchTeachers();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [gRes, cRes, rRes, tRes] = await Promise.all([
+        fetch(`/api/groups/`),
+        fetch(`/api/courses/`),
+        fetch(`/api/rooms/`),
+        fetch(`/api/users/?role=teacher`)
+      ]);
+      setGroups(await gRes.json());
+      setCourses(await cRes.json());
+      setRooms(await rRes.json());
+      setTeachers(await tRes.json());
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     try {
-      const submitData = {
-        name: formData.name,
-        description: formData.description,
-        start_date: formData.start_date,
-        max_seats: formData.max_seats,
-        teacher_id: formData.teacher_id ? parseInt(formData.teacher_id) : null
-      };
-
       const res = await fetch("/api/groups/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submitData)
+        body: JSON.stringify(formData),
       });
-      if (res.ok) {
-        setIsModalOpen(false);
-        setFormData({ name: "", description: "", start_date: "", max_seats: 15, teacher_id: "" });
-        fetchGroups();
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+      if (!res.ok) throw new Error("Xatolik yuz berdi");
+      setIsDrawerOpen(false);
+      setFormData({ name: "", course_id: "", teacher_id: "", room_id: "", schedule_days: "", start_time: "", end_time: "", start_date: "", max_seats: 15, status: "active" });
+      fetchData();
+    } catch (e: any) {
+      alert(e.message);
     }
   };
 
+  const filteredGroups = groups.filter(g => g.name.toLowerCase().includes(search.toLowerCase()));
+
   return (
-    <div className="p-8 relative">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-6xl mx-auto space-y-8">
-
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-extrabold text-white drop-shadow-lg">Guruhlar</h1>
-            <p className="text-slate-400 mt-2 text-sm">Guruhni bosib o'quvchilarni ko'ring</p>
-          </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-xl shadow-lg shadow-blue-500/30 transition-colors"
-          >
-            + Yangi qo'shish
-          </button>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="relative w-full sm:w-96">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <input 
+            type="text" 
+            placeholder="Guruh izlash..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-slate-900/50 border border-slate-700/50 text-white rounded-2xl pl-12 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all backdrop-blur-sm"
+          />
         </div>
+        
+        <button 
+          onClick={() => setIsDrawerOpen(true)}
+          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-6 py-3.5 rounded-2xl font-medium transition-all shadow-lg shadow-emerald-500/25"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Guruh yaratish</span>
+        </button>
+      </div>
 
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="text-slate-400 border-b border-white/10">
-                <th className="pb-4 font-medium uppercase text-xs tracking-wider">Guruh Nomi</th>
-                <th className="pb-4 font-medium uppercase text-xs tracking-wider">O'qituvchi</th>
-                <th className="pb-4 font-medium uppercase text-xs tracking-wider">Tavsif</th>
-                <th className="pb-4 font-medium uppercase text-xs tracking-wider">O'quvchilar</th>
-                <th className="pb-4 font-medium uppercase text-xs tracking-wider text-right">Boshlanish Sanasi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((g, i) => (
-                <tr
-                  key={i}
-                  className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
-                  onClick={() => setSelectedGroup(g)}
-                >
-                  <td className="py-5 text-white font-medium">{g.name}</td>
-                  <td className="py-5 text-indigo-400 font-medium">{g.teacher_name}</td>
-                  <td className="py-5 text-slate-300">{g.description}</td>
-                  <td className="py-5 text-slate-300 font-bold text-blue-400">{g.student_count} / {g.max_seats}</td>
-                  <td className="py-5 text-right text-slate-400">{g.start_date}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-      </motion.div>
-
-      <AnimatePresence>
-        {selectedGroup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setSelectedGroup(null)}
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-slate-800 border border-slate-700 p-8 rounded-[2rem] w-full max-w-2xl relative z-50 shadow-2xl max-h-[80vh] overflow-y-auto"
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {loading ? (
+          <p className="text-slate-400">Yuklanmoqda...</p>
+        ) : filteredGroups.length === 0 ? (
+          <p className="text-slate-400">Guruhlar topilmadi.</p>
+        ) : (
+          filteredGroups.map((group, idx) => (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.05 }}
+              key={group.id} 
+              className="bg-slate-900/40 border border-slate-800/60 p-6 rounded-[2rem] hover:border-slate-700 transition-colors backdrop-blur-md relative overflow-hidden group-card"
             >
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h2 className="text-3xl font-bold text-white">{selectedGroup.name}</h2>
-                  <p className="text-slate-400 mt-1">{selectedGroup.description}</p>
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 ${
+                    group.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
+                    group.status === 'completed' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                    'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                  }`}>
+                    {group.status}
+                  </span>
+                  <h3 className="text-2xl font-bold text-white">{group.name}</h3>
+                  <p className="text-slate-400 text-sm mt-1 flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4" /> {group.course}
+                  </p>
                 </div>
-                <button
-                  onClick={() => setSelectedGroup(null)}
-                  className="text-slate-400 hover:text-white text-2xl font-bold"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-slate-900/50 p-4 rounded-xl">
-                    <p className="text-slate-400 text-sm">O'qituvchi</p>
-                    <p className="text-white font-bold text-lg mt-2">{selectedGroup.teacher_name}</p>
-                  </div>
-                  <div className="bg-slate-900/50 p-4 rounded-xl">
-                    <p className="text-slate-400 text-sm">O'quvchilar soni</p>
-                    <p className="text-blue-400 font-bold text-lg mt-2">{selectedGroup.student_count}</p>
-                  </div>
-                  <div className="bg-slate-900/50 p-4 rounded-xl">
-                    <p className="text-slate-400 text-sm">Maksimal o'rinlar</p>
-                    <p className="text-slate-300 font-bold text-lg mt-2">{selectedGroup.max_seats}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-bold text-white mb-3">O'quvchilar ro'yxati</h3>
-                  {selectedGroup.students && selectedGroup.students.length > 0 ? (
-                    <div className="bg-slate-900/50 rounded-lg divide-y divide-slate-700 max-h-64 overflow-y-auto">
-                      {selectedGroup.students.map((student: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center px-4 py-3 hover:bg-slate-800/50">
-                          <div>
-                            <p className="text-white font-medium">{student.name}</p>
-                            <p className="text-slate-500 text-sm">{student.student_id}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-slate-400 italic py-8 text-center">O'quvchilar yo'q</p>
-                  )}
+                <div className="flex gap-2">
+                  <button className="p-2 bg-slate-800/50 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-xl transition-all"><Edit className="w-4 h-4"/></button>
+                  <button className="p-2 bg-slate-800/50 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl transition-all"><Trash2 className="w-4 h-4"/></button>
                 </div>
               </div>
 
-              <button
-                onClick={() => setSelectedGroup(null)}
-                className="w-full mt-6 py-3 rounded-xl bg-slate-700 text-white font-bold hover:bg-slate-600 transition-colors"
-              >
-                Yopish
-              </button>
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center gap-3 text-sm text-slate-300 bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">
+                  <Users className="w-5 h-5 text-blue-400" />
+                  <span className="flex-1">O'qituvchi:</span>
+                  <span className="font-semibold text-white">{group.teacher_name}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-300 bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">
+                  <Clock className="w-5 h-5 text-purple-400" />
+                  <span className="flex-1">Vaqti:</span>
+                  <span className="font-semibold text-white">{group.schedule_days} • {group.start_time}-{group.end_time}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-300 bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">
+                  <MapPin className="w-5 h-5 text-pink-400" />
+                  <span className="flex-1">Xona:</span>
+                  <span className="font-semibold text-white">{group.room}</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-slate-400">O'quvchilar bandligi</span>
+                  <span className="text-white font-medium">{group.student_count} / {group.max_seats}</span>
+                </div>
+                <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className={`h-2 rounded-full ${group.student_count >= group.max_seats ? 'bg-red-500' : 'bg-gradient-to-r from-emerald-400 to-teal-500'}`}
+                    style={{ width: `${Math.min(100, (group.student_count / group.max_seats) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
             </motion.div>
-          </div>
+          ))
         )}
+      </div>
 
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setIsModalOpen(false)}
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-slate-800 border border-slate-700 p-8 rounded-[2rem] w-full max-w-md relative z-50 shadow-2xl"
-            >
-              <h2 className="text-2xl font-bold text-white mb-6">Yangi Guruh</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Guruh Nomi</label>
-                  <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500" />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">O'qituvchi</label>
-                  <select value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500">
-                    <option value="">Tanlang...</option>
-                    {teachers.map((t: any) => (
-                      <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Tavsif</label>
-                  <input type="text" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500" />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Boshlanish Sanasi</label>
-                  <input type="date" required value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500" />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Maksimal o'rinlar soni</label>
-                  <input type="number" min="1" required value={formData.max_seats} onChange={e => setFormData({...formData, max_seats: parseInt(e.target.value) || 15})} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500" />
-                </div>
-                <div className="flex gap-4 mt-6">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors">Bekor qilish</button>
-                  <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl bg-blue-500 text-white font-bold hover:bg-blue-600 transition-colors disabled:opacity-50">Saqlash</button>
-                </div>
-              </form>
+      {/* Drawer */}
+      <AnimatePresence>
+        {isDrawerOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsDrawerOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" />
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-slate-900 border-l border-slate-800 shadow-2xl z-50 flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-slate-800">
+                <h3 className="text-xl font-bold text-white">Yangi Guruh</h3>
+                <button onClick={() => setIsDrawerOpen(false)} className="p-2 text-slate-400 hover:text-white bg-slate-800/50 rounded-full"><X className="w-5 h-5" /></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                <form id="add-group-form" onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Guruh nomi</label>
+                    <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500/50 outline-none" />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Kurs</label>
+                      <select value={formData.course_id} onChange={e => setFormData({...formData, course_id: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500/50 outline-none">
+                        <option value="">Tanlang...</option>
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">O'qituvchi</label>
+                      <select value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500/50 outline-none">
+                        <option value="">Tanlang...</option>
+                        {teachers.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Xona</label>
+                      <select value={formData.room_id} onChange={e => setFormData({...formData, room_id: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500/50 outline-none">
+                        <option value="">Tanlang...</option>
+                        {rooms.map(r => <option key={r.id} value={r.id}>{r.name} ({r.capacity} kishi)</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Max. joylar</label>
+                      <input type="number" required value={formData.max_seats} onChange={e => setFormData({...formData, max_seats: parseInt(e.target.value)})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Kunlar (masalan: Du-Chor-Jum)</label>
+                    <input type="text" value={formData.schedule_days} onChange={e => setFormData({...formData, schedule_days: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Boshlanish vaqti</label>
+                      <input type="time" value={formData.start_time} onChange={e => setFormData({...formData, start_time: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Tugash vaqti</label>
+                      <input type="time" value={formData.end_time} onChange={e => setFormData({...formData, end_time: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Ochilish sanasi</label>
+                    <input type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50" />
+                  </div>
+                </form>
+              </div>
+
+              <div className="p-6 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm flex gap-3">
+                <button type="button" onClick={() => setIsDrawerOpen(false)} className="flex-1 py-3.5 rounded-xl border border-slate-700 text-slate-300 font-medium hover:bg-slate-800">Bekor qilish</button>
+                <button type="submit" form="add-group-form" className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-500/25">Saqlash</button>
+              </div>
             </motion.div>
-          </div>
+          </>
         )}
       </AnimatePresence>
     </div>

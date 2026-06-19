@@ -97,5 +97,4 @@ class AdmissionRequestAdmin(admin.ModelAdmin):
     list_display = ['full_name', 'phone', 'course_name', 'level', 'status', 'created_at']
     list_filter = ['status', 'level', 'course_name', 'created_at']
     search_fields = ['full_name', 'phone', 'email', 'course_name']
-    readonly_fields = ['created_at', 'updated_at', 'processed_at']
-
+    readonly_fields = ['created_at', 'updated_at']

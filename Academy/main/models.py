@@ -23,13 +23,44 @@ class CustomUser(AbstractUser):
         verbose_name_plural = 'Users'
 
 
-class Group(models.Model):
+class Course(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    price_per_month = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Room(models.Model):
+    name = models.CharField(max_length=50)
+    capacity = models.IntegerField(default=20)
+    
+    def __str__(self):
+        return self.name
+
+
+class Group(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Faol'),
+        ('completed', 'Tugallangan'),
+        ('archived', 'Arxivlangan'),
+    ]
+
+    name = models.CharField(max_length=100)
+    course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, related_name='groups')
     teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='teaching_groups', limit_choices_to={'role': 'teacher'})
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    schedule_days = models.CharField(max_length=100, blank=True, help_text="Masalan: Du-Chor-Jum")
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+    
     start_date = models.DateField()
     end_date = models.DateField(blank=True, null=True)
     max_seats = models.IntegerField(default=15)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -44,6 +75,7 @@ class Student(models.Model):
     groups = models.ManyToManyField(Group, blank=True, related_name='students')
     total_coins = models.IntegerField(default=0)
     student_id = models.CharField(max_length=20, unique=True)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="O'quvchining joriy balansi")
     enrollment_date = models.DateField(default=timezone.now)
 
     def __str__(self):
@@ -61,8 +93,51 @@ class Student(models.Model):
         ordering = ['-total_coins']
 
 
+class Teacher(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='teacher_profile')
+    salary_percentage = models.IntegerField(default=50, help_text="O'qituvchining ulushi (%)")
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="O'qituvchining joriy balansi")
+
+    def __str__(self):
+        return self.user.get_full_name()
+
+
+class Payment(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', 'Naqd pul'),
+        ('card', 'Plastik karta'),
+        ('transfer', "Pul o'tkazmasi"),
+    ]
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cash')
+    description = models.TextField(blank=True)
+    processed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'admin'})
+    payment_date = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.user.get_full_name()} - {self.amount} ({self.get_payment_method_display()})"
+
+    class Meta:
+        ordering = ['-payment_date']
+
+
+class Expense(models.Model):
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    reason = models.CharField(max_length=255)
+    expense_date = models.DateField(default=timezone.now)
+    processed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'admin'})
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.amount} - {self.reason}"
+
+
 class Grade(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='grades')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='grades', null=True)
     subject = models.CharField(max_length=100)
     grade = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
     teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'teacher'})
@@ -108,9 +183,6 @@ class CoinTransaction(models.Model):
     given_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, limit_choices_to={'role__in': ['teacher', 'admin']})
     date = models.DateTimeField(default=timezone.now)
     
-    def __str__(self):
-        return f"{self.student.user.get_full_name()} - {self.amount} coins - {self.reason}"
-    
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         self.student.update_coins()
@@ -129,13 +201,10 @@ class Message(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='sent_messages', limit_choices_to={'role__in': ['teacher', 'admin']})
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True, blank=True, related_name='messages', help_text="Bo'sh qoldirsa barcha guruhlarga boradi")
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True, blank=True, related_name='messages')
     message_type = models.CharField(max_length=15, choices=MESSAGE_TYPE_CHOICES, default='news')
     date = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
-    
-    def __str__(self):
-        return f"{self.title} - {self.sender.get_full_name()}"
     
     class Meta:
         ordering = ['-date']
@@ -151,9 +220,6 @@ class Test(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     deadline = models.DateTimeField(blank=True, null=True)
-    
-    def __str__(self):
-        return f"{self.title} - {self.group.name}"
     
     def calculate_total_marks(self):
         return self.questions.aggregate(models.Sum('marks'))['marks__sum'] or 0
@@ -173,9 +239,6 @@ class Question(models.Model):
     marks = models.IntegerField(default=1)
     order = models.IntegerField(default=0)
     
-    def __str__(self):
-        return f"{self.test.title} - Q{self.order}"
-    
     class Meta:
         ordering = ['order']
 
@@ -183,20 +246,16 @@ class Question(models.Model):
 class TestSubmission(models.Model):
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='submissions')
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='test_submissions')
-    answers = models.JSONField(default=dict, help_text="{'question_id': 'selected_answer'}")
+    answers = models.JSONField(default=dict)
     score = models.IntegerField(default=0)
     submitted_at = models.DateTimeField(auto_now_add=True)
     is_completed = models.BooleanField(default=False)
-    time_taken = models.IntegerField(null=True, blank=True, help_text="Daqiqada")
-    
-    def __str__(self):
-        return f"{self.student.user.get_full_name()} - {self.test.title} - {self.score}/{self.test.total_marks}"
+    time_taken = models.IntegerField(null=True, blank=True)
     
     def calculate_score(self):
         score = 0
         for question in self.test.questions.all():
-            student_answer = self.answers.get(str(question.id))
-            if student_answer == question.correct_answer:
+            if self.answers.get(str(question.id)) == question.correct_answer:
                 score += question.marks
         self.score = score
         self.save()
@@ -231,38 +290,11 @@ class AdmissionRequest(models.Model):
     source = models.CharField(max_length=100, blank=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
-    assigned_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, related_name='admission_requests')
-    processed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='processed_admission_requests', limit_choices_to={'role': 'admin'})
-    processed_at = models.DateTimeField(null=True, blank=True)
-    created_user = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_from_admission_requests')
-
+    assigned_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True)
+    processed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'role': 'admin'})
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"{self.full_name} - {self.course_name} ({self.get_status_display()})"
-
     class Meta:
         ordering = ['-created_at']
-
-
-class Payment(models.Model):
-    PAYMENT_METHOD_CHOICES = [
-        ('cash', 'Naqd pul'),
-        ('card', 'Plastik karta'),
-        ('transfer', 'Pul o\'tkazmasi'),
-    ]
-
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='payments')
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cash')
-    description = models.TextField(blank=True)
-    processed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'admin'})
-    payment_date = models.DateTimeField(default=timezone.now)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.student.user.get_full_name()} - {self.amount} ({self.get_payment_method_display()})"
-
-    class Meta:
-        ordering = ['-payment_date']
