@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}O'chirish tasdiqlash{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/admin_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>O'chirish tasdiqlash
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-3">Quyidagi foydalanuvchini o'chirishga ishonchingiz komilmi?</p>
+                
+                <div class="alert alert-warning">
+                    <strong>{{ user_obj.get_full_name }}</strong><br>
+                    <small class="text-muted">
+                        Username: {{ user_obj.username }}<br>
+                        Rol: {{ user_obj.get_role_display }}
+                    </small>
+                </div>
+                
+                <p class="text-danger small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Bu amalni qaytarib bo'lmaydi!
+                </p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-2"></i>Ha, O'chirish
+                        </button>
+                        <a href="{% url 'admin_users_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-lg me-2"></i>Yo'q, Bekor qilish
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

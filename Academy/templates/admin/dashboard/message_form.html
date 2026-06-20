@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Xabar Yuborish - Admin{% endblock %}
+{% block sidebar %}
+{% include 'includes/admin_sidebar.html' %}
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-chat-square-text me-2"></i>Xabar Yuborish</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Sarlavha *</label>
+                        {{ form.title }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Xabar Matni *</label>
+                        {{ form.content }}
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Guruh</label>
+                            {{ form.group }}
+                            <small class="text-muted d-block">Bo'sh qoldiring = Barcha guruhlarga</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Xabar Turi *</label>
+                            {{ form.message_type }}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send me-2"></i>Yuborish
+                        </button>
+                        <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Bekor qilish</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

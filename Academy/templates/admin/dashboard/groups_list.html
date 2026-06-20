@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Guruhlar - Admin{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/admin_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Guruhlar</h2>
+        <p class="text-muted mb-0">Barcha guruhlarni boshqarish</p>
+    </div>
+    <a href="{% url 'admin_group_create' %}" class="btn btn-success">
+        <i class="bi bi-plus-lg me-2"></i>Yangi Guruh
+    </a>
+</div>
+
+{% if groups %}
+<div class="row g-3">
+    {% for group in groups %}
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="card-title mb-0">{{ group.name }}</h5>
+                    <span class="badge bg-success">Faol</span>
+                </div>
+                
+                <p class="text-muted mb-3">{{ group.description|truncatewords:15 }}</p>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">
+                            <i class="bi bi-person-video3 me-1"></i>O'qituvchi:
+                        </span>
+                        <strong>
+                            {% if group.teacher %}
+                            {{ group.teacher.get_full_name }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">
+                            <i class="bi bi-people me-1"></i>O'quvchilar:
+                        </span>
+                        <strong>{{ group.students.count }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">
+                            <i class="bi bi-calendar me-1"></i>Boshlanish:
+                        </span>
+                        <strong>{{ group.start_date|date:"d.m.Y" }}</strong>
+                    </div>
+                </div>
+                
+                <div class="btn-group w-100">
+                    <a href="{% url 'admin_group_edit' group.id %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-pencil me-1"></i>Tahrirlash
+                    </a>
+                    <a href="{% url 'admin_group_delete' group.id %}" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i>O'chirish
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-collection text-muted" style="font-size: 5rem;"></i>
+        <h4 class="text-muted mt-3">Guruhlar yo'q</h4>
+        <p class="text-muted">Hali birorta guruh yaratilmagan</p>
+        <a href="{% url 'admin_group_create' %}" class="btn btn-success">
+            <i class="bi bi-plus-lg me-2"></i>Birinchi guruhni yaratish
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
