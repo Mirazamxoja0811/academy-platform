@@ -24,6 +24,7 @@ interface StudentData {
   rank?: number;
   total_students?: number;
   group_name?: string;
+  schedule?: string;
 }
 
 const containerVariants: Variants = {
@@ -49,11 +50,11 @@ export default function StudentDashboard() {
   });
 
   useEffect(() => {
-    fetch('/api/me/')
+    fetch('/api/me/', { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(user => setData(prev => ({...prev, full_name: user.full_name})));
 
-    fetch('/api/students/me/dashboard/')
+    fetch('/api/students/me/dashboard/', { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(d => setData(prev => ({...prev, ...d})));
   }, []);
@@ -78,10 +79,15 @@ export default function StudentDashboard() {
           <p className="text-slate-400 mt-2 text-lg">Bugungi o'qishlaringizga omad tilaymiz.</p>
           
           {data.group_name && (
-            <div className="mt-6 flex gap-4 flex-wrap">
+            <div className="mt-6 flex flex-col sm:flex-row gap-4 flex-wrap">
               <span className="px-4 py-2 bg-slate-800/50 rounded-xl border border-slate-700/50 font-medium text-slate-300 flex items-center gap-2">
                 <GraduationCap className="w-5 h-5 text-blue-400" /> {data.group_name}
               </span>
+              {data.schedule && (
+                <span className="px-4 py-2 bg-purple-500/10 rounded-xl border border-purple-500/20 font-medium text-purple-300 flex items-center gap-2">
+                  <CalendarDays className="w-5 h-5 text-purple-400" /> {data.schedule}
+                </span>
+              )}
               <span className="px-4 py-2 bg-yellow-500/10 text-yellow-400 rounded-xl border border-yellow-500/20 font-bold flex items-center gap-2">
                 <Trophy className="w-5 h-5" /> Guruh reytingi: {data.rank} / {data.total_students}
               </span>

@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { LayoutDashboard, CheckSquare, Calendar, Coins, ClipboardList, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Calendar, Coins, ClipboardList, Settings, LogOut, MessageSquare } from "lucide-react";
 import DashboardClock from "@/components/DashboardClock";
 
 export default function StudentLayout({ children }: { children: ReactNode }) {
@@ -12,7 +12,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<{full_name: string, role: string} | null>(null);
 
   useEffect(() => {
-    fetch('/api/me/')
+    fetch('/api/me/', { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(data => {
         if (data.detail) { window.location.href = '/login/'; return; }
@@ -33,6 +33,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
     { name: "Davomat", path: "/student/attendance", icon: Calendar },
     { name: "Coinlar", path: "/student/coins", icon: Coins },
     { name: "Testlar", path: "/student/tests", icon: ClipboardList },
+    { name: "Xabarlar", path: "/student/messages", icon: MessageSquare },
     { name: "Sozlamalar", path: "/student/settings", icon: Settings },
   ];
 

@@ -21,20 +21,24 @@ export default function DashboardPage() {
     total_students: 0,
     total_teachers: 0,
     total_groups: 0,
+    total_revenue: 0,
+    chart_data: [] as Array<{name: string, total: number}>,
+    top_students: [] as Array<{id: number, name: string, coins: number}>,
   });
 
   useEffect(() => {
-    fetch('/api/admin/dashboard/stats/')
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(e => console.error(e));
+    import("axios").then(axios => {
+      axios.default.get('/api/admin/dashboard/stats/', { withCredentials: true })
+        .then(res => setStats(res.data))
+        .catch(e => console.error(e));
+    });
   }, []);
 
   const cards = [
     { title: "Jami O'quvchilar", value: stats.total_students, icon: Users, color: "from-blue-500 to-cyan-500" },
     { title: "Jami O'qituvchilar", value: stats.total_teachers, icon: BookOpen, color: "from-purple-500 to-pink-500" },
     { title: "Jami Guruhlar", value: stats.total_groups, icon: Shield, color: "from-emerald-500 to-teal-500" },
-    { title: "Umumiy Tushum", value: "34,500,000 UZS", icon: Banknote, color: "from-orange-500 to-red-500" },
+    { title: "Umumiy Tushum", value: `${(stats.total_revenue || 0).toLocaleString()} UZS`, icon: Banknote, color: "from-orange-500 to-red-500" },
   ];
 
   return (
@@ -60,10 +64,7 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            <div className="flex items-center gap-2 text-sm text-emerald-400">
-              <span className="bg-emerald-500/10 px-2 py-1 rounded-full">+12.5%</span>
-              <span className="text-slate-500">O'tgan oyga nisbatan</span>
-            </div>
+            
           </motion.div>
         ))}
       </div>
@@ -78,7 +79,7 @@ export default function DashboardPage() {
           <h3 className="text-xl font-bold text-white mb-6">Tushumlar grafigi</h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={stats.chart_data && stats.chart_data.length > 0 ? stats.chart_data : data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -103,20 +104,22 @@ export default function DashboardPage() {
           transition={{ delay: 0.5 }}
           className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-6 rounded-[2rem]"
         >
-          <h3 className="text-xl font-bold text-white mb-6">Muhim ogohlantirishlar</h3>
+          <h3 className="text-xl font-bold text-white mb-6">Top O'quvchilar</h3>
           
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex gap-4 p-4 rounded-2xl border border-slate-800 bg-slate-950/50 hover:bg-slate-800/50 transition-colors cursor-pointer">
-                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500 h-fit">
-                  <AlertTriangle className="w-5 h-5" />
+            {stats.top_students && stats.top_students.length > 0 ? stats.top_students.map((student: any, idx: number) => (
+              <div key={student.id} className="flex gap-4 p-4 rounded-2xl border border-slate-800 bg-slate-950/50 hover:bg-slate-800/50 transition-colors">
+                <div className="p-2 rounded-xl bg-yellow-500/10 text-yellow-500 h-fit w-10 h-10 flex items-center justify-center font-bold">
+                  {idx + 1}
                 </div>
-                <div>
-                  <h4 className="text-white font-medium">To'lov kechikmoqda</h4>
-                  <p className="text-sm text-slate-400 mt-1">Azizbek Rustamov 2 oydan beri to'lov qilmadi</p>
+                <div className="flex-1">
+                  <h4 className="text-white font-medium">{student.name}</h4>
+                  <p className="text-sm text-yellow-400 mt-1 font-semibold">{student.coins} coin</p>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-slate-500 text-center py-4">O'quvchilar topilmadi</p>
+            )}
           </div>
         </motion.div>
       </div>

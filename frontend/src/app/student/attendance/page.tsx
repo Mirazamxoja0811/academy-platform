@@ -19,7 +19,7 @@ export default function StudentAttendance() {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
 
   useEffect(() => {
-    fetch('/api/students/me/attendance/')
+    fetch('/api/students/me/attendance/', { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(data => setAttendance(data))
       .catch(console.error);

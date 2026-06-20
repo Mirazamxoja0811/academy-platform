@@ -10,21 +10,33 @@ export default function TeacherAttendance() {
   const [groups, setGroups] = useState<any[]>([]);
   const [editingNote, setEditingNote] = useState<number | null>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const handleClearOld = async () => {
+    if (!confirm("Haqiqatan ham 30 kundan eski bo'lgan barcha davomatlarni tozalab tashlamoqchimisiz?")) return;
+    try {
+      const res = await fetch('/api/teacher/attendance/clear-old/', { method: 'DELETE', credentials: "include" });
+      const data = await res.json();
+      alert(data.message || "Tozalandi");
+      fetchHistory();
+    } catch (e) {
+      alert("Xatolik yuz berdi");
+    }
+  };
+
 
   const fetchHistory = () => {
-    fetch("/api/teacher/history/attendance/")
+    fetch("/api/teacher/history/attendance/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(data => setHistory(data))
       .catch(e => console.error(e));
   };
 
   useEffect(() => {
-    fetch("/api/students/")
+    fetch("/api/students/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(data => setStudents(data.map((s: any) => ({ ...s, status: null, note: "" }))))
       .catch(e => console.error(e));
 
-    fetch("/api/groups/")
+    fetch("/api/groups/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(data => {
         setGroups(data);
@@ -59,7 +71,7 @@ export default function TeacherAttendance() {
 
     if (!selectedGroup || records.length === 0) return;
 
-    fetch('/api/teacher/batch_attendance/', {
+    fetch('/api/teacher/batch_attendance/', { credentials: "include", 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -79,7 +91,7 @@ export default function TeacherAttendance() {
 
   const deleteAttendance = (id: number) => {
     if(!confirm("Bu yo'qlamani o'chirishni xohlaysizmi?")) return;
-    fetch(`/api/attendance/${id}/delete/`, { method: "POST" })
+    fetch(`/api/attendance/${id}/delete/`, { credentials: "include",  method: "POST" })
       .then(res => {
         if(res.ok) fetchHistory();
       });
@@ -94,6 +106,9 @@ export default function TeacherAttendance() {
             <p className="text-slate-400 mt-2 text-sm">Guruhlar bo'yicha yo'qlama qilish</p>
           </div>
           <div className="flex gap-4">
+            <button onClick={handleClearOld} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold py-2 px-4 rounded-xl border border-rose-500/30 transition-colors">
+              1 Oylik tozalash
+            </button>
             <select
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}

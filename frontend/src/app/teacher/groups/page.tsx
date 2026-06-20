@@ -26,7 +26,7 @@ export default function TeacherGroups() {
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("/api/teacher/groups/")
+    fetch("/api/teacher/groups/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(data => setGroups(data))
       .catch(console.error);

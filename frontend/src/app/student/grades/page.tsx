@@ -22,7 +22,7 @@ export default function StudentGrades() {
   const [filterSubject, setFilterSubject] = useState<string>("Barchasi");
 
   useEffect(() => {
-    fetch('/api/students/me/grades/')
+    fetch('/api/students/me/grades/', { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(data => setGrades(data))
       .catch(console.error);

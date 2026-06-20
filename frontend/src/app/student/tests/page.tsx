@@ -38,7 +38,7 @@ export default function StudentTests() {
   const [result, setResult] = useState<{ score: number; total: number } | null>(null);
 
   const loadTests = () => {
-    fetch('/api/students/me/tests/')
+    fetch('/api/students/me/tests/', { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(data => setTests(data))
       .catch(console.error);
@@ -47,7 +47,7 @@ export default function StudentTests() {
   useEffect(() => { loadTests(); }, []);
 
   const startTest = (testId: number) => {
-    fetch(`/api/students/me/tests/${testId}/`)
+    fetch(`/api/students/me/tests/${testId}/`, { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(data => {
         if (data.detail) {
@@ -62,7 +62,7 @@ export default function StudentTests() {
 
   const submitTest = () => {
     if (!activeTest) return;
-    fetch(`/api/students/me/tests/${activeTest.id}/submit/`, {
+    fetch(`/api/students/me/tests/${activeTest.id}/submit/`, { credentials: "include", 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers }),

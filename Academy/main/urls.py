@@ -19,6 +19,7 @@ urlpatterns = [
 
     path('api/me/', views.api_me, name='api_me'),
     path('api/account/settings/', views.api_account_settings, name='api_account_settings'),
+    path('api/system/settings/', views.api_system_settings, name='api_system_settings'),
     path('api/students/me/dashboard/', views.api_student_dashboard, name='api_student_dashboard'),
     path('api/students/me/grades/', views.api_student_grades, name='api_student_grades'),
     path('api/students/me/attendance/', views.api_student_attendance, name='api_student_attendance'),
@@ -37,6 +38,11 @@ urlpatterns = [
     path('api/finance/', views.api_finance, name='api_finance'),
     path('api/students/me/tests/<int:test_id>/', views.api_student_test_detail, name='api_student_test_detail'),
     path('api/students/me/tests/<int:test_id>/submit/', views.api_student_test_submit, name='api_student_test_submit'),
+
+    # New Admin APIs
+    path('api/courses/<int:course_id>/', views.api_course_detail, name='api_course_detail'),
+    path('api/groups/<int:group_id>/', views.api_group_detail, name='api_group_detail'),
+    path('api/admissions/<int:request_id>/action/', views.api_admissions_action, name='api_admissions_action'),
 
     # Delete APIs
     path('api/grades/<int:grade_id>/delete/', views.api_grade_delete, name='api_grade_delete'),

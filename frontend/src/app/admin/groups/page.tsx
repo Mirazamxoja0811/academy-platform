@@ -1,20 +1,25 @@
 "use client";
 
+import ConfirmModal from "@/components/ConfirmModal";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Search, Trash2, Edit, X, Users, BookOpen, Clock, CalendarDays, MapPin } from "lucide-react";
+import { Plus, Search, Trash2, Edit, X, Users, BookOpen, Clock, CalendarDays } from "lucide-react";
 
 export default function GroupsPage() {
   const [groups, setGroups] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
-  const [rooms, setRooms] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null as any, message: "" });
   const [search, setSearch] = useState("");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   
+  const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
+
   const [formData, setFormData] = useState({
-    name: "", course_id: "", teacher_id: "", room_id: "", 
+    name: "", course_id: "", teacher_id: "",
     schedule_days: "", start_time: "", end_time: "",
     start_date: "", max_seats: 15, status: "active"
   });
@@ -26,15 +31,13 @@ export default function GroupsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [gRes, cRes, rRes, tRes] = await Promise.all([
+      const [gRes, cRes, tRes] = await Promise.all([
         fetch(`/api/groups/`),
         fetch(`/api/courses/`),
-        fetch(`/api/rooms/`),
         fetch(`/api/users/?role=teacher`)
       ]);
       setGroups(await gRes.json());
       setCourses(await cRes.json());
-      setRooms(await rRes.json());
       setTeachers(await tRes.json());
     } catch (e) {
       console.error(e);
@@ -45,17 +48,54 @@ export default function GroupsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("/api/groups/", {
-        method: "POST",
+      const url = editingId ? `/api/groups/${editingId}/` : "/api/groups/";
+      const method = editingId ? "PUT" : "POST";
+      
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
       if (!res.ok) throw new Error("Xatolik yuz berdi");
+      
       setIsDrawerOpen(false);
-      setFormData({ name: "", course_id: "", teacher_id: "", room_id: "", schedule_days: "", start_time: "", end_time: "", start_date: "", max_seats: 15, status: "active" });
+      setEditingId(null);
+      setFormData({ name: "", course_id: "", teacher_id: "", schedule_days: "", start_time: "", end_time: "", start_date: "", max_seats: 15, status: "active" });
       fetchData();
     } catch (e: any) {
       alert(e.message);
+    }
+  };
+
+  const handleEdit = (g: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(g.id);
+    setFormData({
+      name: g.name || "",
+      course_id: courses.find(c => c.name === g.course)?.id || "",
+      teacher_id: g.teacher_id || "",
+      schedule_days: g.schedule_days || "",
+      start_time: g.start_time || "",
+      end_time: g.end_time || "",
+      start_date: g.start_date || "",
+      max_seats: g.max_seats || 15,
+      status: g.status || "active"
+    });
+    setIsDrawerOpen(true);
+  };
+
+  const handleDelete = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConfirmModal({ isOpen: true, id, message: "Rostdan ham guruhni o'chirmoqchimisiz?" });
+  };
+  
+  const executeDelete = async () => {
+    if (!confirmModal.id) return;
+    try {
+      await fetch(`/api/groups/${confirmModal.id}/`, { method: "DELETE" });
+      fetchData();
+    } catch (e) {
+      alert("O'chirishda xatolik yuz berdi");
     }
   };
 
@@ -76,7 +116,11 @@ export default function GroupsPage() {
         </div>
         
         <button 
-          onClick={() => setIsDrawerOpen(true)}
+          onClick={() => {
+            setEditingId(null);
+            setFormData({ name: "", course_id: "", teacher_id: "", schedule_days: "", start_time: "", end_time: "", start_date: "", max_seats: 15, status: "active" });
+            setIsDrawerOpen(true);
+          }}
           className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-6 py-3.5 rounded-2xl font-medium transition-all shadow-lg shadow-emerald-500/25"
         >
           <Plus className="w-5 h-5" />
@@ -96,7 +140,8 @@ export default function GroupsPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05 }}
               key={group.id} 
-              className="bg-slate-900/40 border border-slate-800/60 p-6 rounded-[2rem] hover:border-slate-700 transition-colors backdrop-blur-md relative overflow-hidden group-card"
+              onClick={() => setSelectedGroup(group)}
+              className="bg-slate-900/40 border border-slate-800/60 p-6 rounded-[2rem] hover:border-slate-700 transition-colors backdrop-blur-md relative overflow-hidden group-card cursor-pointer"
             >
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -107,14 +152,14 @@ export default function GroupsPage() {
                   }`}>
                     {group.status}
                   </span>
-                  <h3 className="text-2xl font-bold text-white">{group.name}</h3>
+                  <h3 className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">{group.name}</h3>
                   <p className="text-slate-400 text-sm mt-1 flex items-center gap-1.5">
                     <BookOpen className="w-4 h-4" /> {group.course}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button className="p-2 bg-slate-800/50 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-xl transition-all"><Edit className="w-4 h-4"/></button>
-                  <button className="p-2 bg-slate-800/50 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl transition-all"><Trash2 className="w-4 h-4"/></button>
+                  <button onClick={(e) => handleEdit(group, e)} className="p-2 bg-slate-800/50 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-xl transition-all"><Edit className="w-4 h-4"/></button>
+                  <button onClick={(e) => handleDelete(group.id, e)} className="p-2 bg-slate-800/50 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl transition-all"><Trash2 className="w-4 h-4"/></button>
                 </div>
               </div>
 
@@ -128,11 +173,6 @@ export default function GroupsPage() {
                   <Clock className="w-5 h-5 text-purple-400" />
                   <span className="flex-1">Vaqti:</span>
                   <span className="font-semibold text-white">{group.schedule_days} • {group.start_time}-{group.end_time}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-300 bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">
-                  <MapPin className="w-5 h-5 text-pink-400" />
-                  <span className="flex-1">Xona:</span>
-                  <span className="font-semibold text-white">{group.room}</span>
                 </div>
               </div>
 
@@ -160,7 +200,7 @@ export default function GroupsPage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsDrawerOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" />
             <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-slate-900 border-l border-slate-800 shadow-2xl z-50 flex flex-col">
               <div className="flex items-center justify-between p-6 border-b border-slate-800">
-                <h3 className="text-xl font-bold text-white">Yangi Guruh</h3>
+                <h3 className="text-xl font-bold text-white">{editingId ? "Guruhni Tahrirlash" : "Yangi Guruh"}</h3>
                 <button onClick={() => setIsDrawerOpen(false)} className="p-2 text-slate-400 hover:text-white bg-slate-800/50 rounded-full"><X className="w-5 h-5" /></button>
               </div>
 
@@ -188,18 +228,9 @@ export default function GroupsPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-400 mb-2">Xona</label>
-                      <select value={formData.room_id} onChange={e => setFormData({...formData, room_id: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500/50 outline-none">
-                        <option value="">Tanlang...</option>
-                        {rooms.map(r => <option key={r.id} value={r.id}>{r.name} ({r.capacity} kishi)</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-400 mb-2">Max. joylar</label>
-                      <input type="number" required value={formData.max_seats} onChange={e => setFormData({...formData, max_seats: parseInt(e.target.value)})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50" />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Max. joylar</label>
+                    <input type="number" required value={formData.max_seats} onChange={e => setFormData({...formData, max_seats: parseInt(e.target.value)})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50" />
                   </div>
 
                   <div>
@@ -220,7 +251,7 @@ export default function GroupsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-400 mb-2">Ochilish sanasi</label>
-                    <input type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50" />
+                    <input type="date" value={formData.start_date?.split('T')[0]} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50" />
                   </div>
                 </form>
               </div>
@@ -233,6 +264,61 @@ export default function GroupsPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Student List Modal */}
+      <AnimatePresence>
+        {selectedGroup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedGroup(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl relative z-10 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+            >
+              <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                <div>
+                  <h3 className="text-xl font-bold text-white">{selectedGroup.name} O'quvchilari</h3>
+                  <p className="text-sm text-slate-400 mt-1">{selectedGroup.students?.length || 0} ta o'quvchi</p>
+                </div>
+                <button onClick={() => setSelectedGroup(null)} className="p-2 text-slate-400 hover:text-white bg-slate-900 rounded-full"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+                {selectedGroup.students?.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedGroup.students.map((student: any, idx: number) => (
+                      <div key={student.id} className="flex items-center gap-4 bg-slate-950/50 border border-slate-800 p-4 rounded-2xl">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium text-white">{student.name}</p>
+                          <p className="text-sm text-slate-500">ID: {student.student_id}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-400 text-center py-10">Bu guruhda hozircha o'quvchilar yo'q.</p>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={executeDelete}
+        message={confirmModal.message}
+      />
     </div>
   );
 }

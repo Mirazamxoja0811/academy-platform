@@ -49,8 +49,8 @@ export default function TeacherTests() {
   const [toast, setToast] = useState("");
 
   const load = () => {
-    fetch("/api/groups/").then(r => r.json()).then(setGroups);
-    fetch("/api/teacher/tests/").then(r => r.json()).then(setTests);
+    fetch("/api/groups/", { credentials: "include",  credentials: "include" }).then(r => r.json()).then(setGroups);
+    fetch("/api/teacher/tests/", { credentials: "include",  credentials: "include" }).then(r => r.json()).then(setTests);
   };
 
   useEffect(() => { load(); }, []);
@@ -73,7 +73,7 @@ export default function TeacherTests() {
     e.preventDefault();
     if (!form.group_id || !form.title) return;
 
-    const res = await fetch("/api/teacher/tests/", {
+    const res = await fetch("/api/teacher/tests/", { credentials: "include", 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

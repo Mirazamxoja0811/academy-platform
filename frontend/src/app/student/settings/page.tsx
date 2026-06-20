@@ -12,7 +12,7 @@ export default function StudentSettings() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    fetch("/api/me/")
+    fetch("/api/me/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(d => {
         setUser(d);
@@ -51,7 +51,7 @@ export default function StudentSettings() {
         formDataToSend.append('avatar', avatar);
       }
 
-      const res = await fetch("/api/account/settings/", {
+      const res = await fetch("/api/account/settings/", { credentials: "include", 
         method: "POST",
         body: formDataToSend
       });

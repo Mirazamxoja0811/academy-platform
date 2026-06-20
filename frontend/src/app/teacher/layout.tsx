@@ -12,7 +12,7 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<{full_name: string, role: string} | null>(null);
 
   useEffect(() => {
-    fetch('/api/me/')
+    fetch('/api/me/', { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(data => {
         if (data.detail) { window.location.href = '/login/'; return; }

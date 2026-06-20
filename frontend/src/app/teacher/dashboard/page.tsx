@@ -53,11 +53,11 @@ export default function TeacherDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch('/api/me/')
+    fetch('/api/me/', { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(user => setData(prev => ({...prev, full_name: user.full_name})));
 
-    fetch('/api/teacher/dashboard/stats/')
+    fetch('/api/teacher/dashboard/stats/', { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(d => setData(prev => ({...prev, ...d})));
   }, []);

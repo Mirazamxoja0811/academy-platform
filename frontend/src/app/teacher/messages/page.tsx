@@ -11,7 +11,7 @@ export default function TeacherMessages() {
   const [groups, setGroups] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("/api/groups/")
+    fetch("/api/groups/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(data => setGroups(data))
       .catch(e => console.error(e));

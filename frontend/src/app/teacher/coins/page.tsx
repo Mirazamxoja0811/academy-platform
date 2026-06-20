@@ -13,14 +13,14 @@ export default function TeacherCoins() {
   const [history, setHistory] = useState<any[]>([]);
 
   const fetchHistory = () => {
-    fetch("/api/teacher/history/coins/")
+    fetch("/api/teacher/history/coins/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(data => setHistory(data))
       .catch(e => console.error(e));
   };
 
   useEffect(() => {
-    fetch("/api/students/")
+    fetch("/api/students/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(data => setStudents(data))
       .catch(e => console.error(e));
@@ -32,7 +32,7 @@ export default function TeacherCoins() {
     e.preventDefault();
     if (!selectedStudent || !amount || !reason) return;
 
-    fetch('/api/teacher/coins/', {
+    fetch('/api/teacher/coins/', { credentials: "include", 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -56,7 +56,7 @@ export default function TeacherCoins() {
 
   const deleteCoin = (id: number) => {
     if(!confirm("Bu coinni o'chirishni xohlaysizmi?")) return;
-    fetch(`/api/coins/${id}/delete/`, { method: "POST" })
+    fetch(`/api/coins/${id}/delete/`, { credentials: "include",  method: "POST" })
       .then(res => {
         if(res.ok) fetchHistory();
       });

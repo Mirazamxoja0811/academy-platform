@@ -11,19 +11,19 @@ export default function TeacherGrading() {
   const [history, setHistory] = useState<any[]>([]);
 
   const fetchHistory = () => {
-    fetch("/api/teacher/history/grades/")
+    fetch("/api/teacher/history/grades/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(data => setHistory(data))
       .catch(e => console.error(e));
   };
 
   useEffect(() => {
-    fetch("/api/students/")
+    fetch("/api/students/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(data => setStudents(data.map((s: any) => ({ ...s, grade: null }))))
       .catch(e => console.error(e));
 
-    fetch("/api/groups/")
+    fetch("/api/groups/", { credentials: "include",  credentials: "include" })
       .then(r => r.json())
       .then(data => {
         setGroups(data);
@@ -53,7 +53,7 @@ export default function TeacherGrading() {
 
     if (gradesToSave.length === 0) return;
 
-    fetch('/api/teacher/batch_grading/', {
+    fetch('/api/teacher/batch_grading/', { credentials: "include", 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ grades: gradesToSave, subject: "Umumiy" }),
@@ -69,7 +69,7 @@ export default function TeacherGrading() {
 
   const deleteGrade = (id: number) => {
     if(!confirm("Bu bahoni o'chirishni xohlaysizmi?")) return;
-    fetch(`/api/grades/${id}/delete/`, { method: "POST" })
+    fetch(`/api/grades/${id}/delete/`, { credentials: "include",  method: "POST" })
       .then(res => {
         if(res.ok) fetchHistory();
       });

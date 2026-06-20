@@ -20,7 +20,7 @@ export default function StudentCoins() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
-    fetch('/api/students/me/coins/')
+    fetch('/api/students/me/coins/', { credentials: "include",  credentials: "include" })
       .then(res => res.json())
       .then(data => {
         setBalance(data.balance || 0);
