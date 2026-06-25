@@ -30,14 +30,18 @@ urlpatterns = [
     path('api/teacher/batch_attendance/', views.api_batch_attendance, name='api_batch_attendance'),
     path('api/teacher/coins/', views.api_teacher_coins, name='api_teacher_coins'),
     path('api/teacher/groups/', views.api_teacher_groups, name='api_teacher_groups'),
-    path('api/teacher/history/grades/', views.api_teacher_history_grades, name='api_teacher_history_grades'),
-    path('api/teacher/history/attendance/', views.api_teacher_history_attendance, name='api_teacher_history_attendance'),
     path('api/teacher/history/coins/', views.api_teacher_history_coins, name='api_teacher_history_coins'),
     path('api/teacher/tests/', views.api_teacher_tests, name='api_teacher_tests'),
+    path('api/teacher/tests/<int:test_id>/', views.api_teacher_test_detail, name='api_teacher_test_detail'),
     path('api/admin/dashboard/stats/', views.api_admin_dashboard, name='api_admin_dashboard'),
     path('api/finance/', views.api_finance, name='api_finance'),
     path('api/students/me/tests/<int:test_id>/', views.api_student_test_detail, name='api_student_test_detail'),
     path('api/students/me/tests/<int:test_id>/submit/', views.api_student_test_submit, name='api_student_test_submit'),
+    path('api/students/me/messages/', views.api_student_messages_api, name='api_student_messages'),
+    path('api/teacher/messages/', views.api_teacher_messages_api, name='api_teacher_messages'),
+    path('api/teacher/announcement/', views.api_teacher_announcement, name='api_teacher_announcement'),
+    path('api/teacher/tests/<int:test_id>/delete/', views.api_teacher_test_delete, name='api_teacher_test_delete'),
+
 
     # New Admin APIs
     path('api/courses/<int:course_id>/', views.api_course_detail, name='api_course_detail'),
@@ -65,6 +69,7 @@ urlpatterns = [
     path('student/attendance/', TemplateView.as_view(template_name='student/attendance.html'), name='student_attendance'),
     path('student/coins/', TemplateView.as_view(template_name='student/coins.html'), name='student_coins'),
     path('student/tests/', TemplateView.as_view(template_name='student/tests.html'), name='student_tests'),
+    path('student/messages/', TemplateView.as_view(template_name='student/messages.html'), name='student_messages'),
     path('student/settings/', TemplateView.as_view(template_name='student/settings.html'), name='student_settings'),
 
     # TEACHER NEXT.JS PAGES

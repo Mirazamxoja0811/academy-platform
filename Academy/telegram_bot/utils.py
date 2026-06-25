@@ -229,13 +229,40 @@ Siz <b>+{amount}</b> coins oldingiz!
         logger.error(f"Failed to send coins notification: {e}")
 
 
-def notify_new_grade(student_id: int, subject: str, grade: int, comment: str = ""):
+def notify_new_grade(student_id: int, subject: str, grade: int, teacher_name: str = "", date_time: str = ""):
     """
     O'quvchiga yangi baho haqida notification
+    """
+    from main.models import Student
+    from telegram_bot.models import TelegramUser
+    from datetime import datetime
     
-    Usage:
-        from telegram_bot.utils import notify_new_grade
-        notify_new_grade(student_id=1, subject="Python", grade=95, comment="A'lo!")
+    if not date_time:
+        date_time = datetime.now().strftime('%d.%m.%Y %H:%M')
+    
+    try:
+        student = Student.objects.select_related('user').get(id=student_id)
+        tg_user = TelegramUser.objects.get(user=student.user)
+        
+        student_name = student.user.get_full_name() or student.user.username
+        
+        notification_text = f"""Talaba {student_name} darsda baxo oldi.
+
+Fan: {subject}
+Mentor: {teacher_name}
+Vaqt: {date_time}
+Baxo: 🟢 {grade}
+"""
+        send_message_sync(tg_user.telegram_id, notification_text)
+        logger.info(f"Grade notification sent to student {student_id}")
+    except TelegramUser.DoesNotExist:
+        logger.warning(f"TelegramUser not found for student {student_id}")
+    except Exception as e:
+        logger.error(f"Failed to send grade notification: {e}")
+
+def notify_attendance(student_id: int, subject: str, teacher_name: str, date_str: str, status: str, time_range: str = ""):
+    """
+    Davomat haqida umumiy xabarnoma (Keldi, Kelmadi, Sababli)
     """
     from main.models import Student
     from telegram_bot.models import TelegramUser
@@ -244,19 +271,38 @@ def notify_new_grade(student_id: int, subject: str, grade: int, comment: str = "
         student = Student.objects.select_related('user').get(id=student_id)
         tg_user = TelegramUser.objects.get(user=student.user)
         
-        comment_text = f"\n💬 <i>{comment}</i>" if comment else ""
+        student_name = student.user.get_full_name() or student.user.username
         
-        notification_text = f"""
-📝 <b>Yangi Baho!</b>
+        time_text = f" Dars {time_range} oralig'ida o'tkazildi." if time_range else ""
+        
+        if status in ['absent', 'false', False]:
+            notification_text = f"""🔴 Hurmatli {student_name},
 
-<b>Fan:</b> {subject}
-<b>Baho:</b> {grade}{comment_text}
+Siz {subject} fanidan {date_str} sanasidagi darsga qatnashmadingiz.{time_text}
 
-Batafsil ma'lumot uchun botdan yoki web saytdan foydalaning.
-"""
+Sizning ta'lim jarayonida muntazam qatnashishingiz muvaffaqiyatingiz uchun juda muhim. Iltimos, darslarimizga o'z vaqtida qatnashing.
+
+Hurmat bilan, Fan mentori {teacher_name}"""
+        elif status == 'present':
+            notification_text = f"""🟢 Hurmatli {student_name},
+
+Siz {subject} fanidan {date_str} sanasidagi darsga qatnashdingiz.{time_text}
+
+Muvaffaqiyatlar tilaymiz! O'qishdan charchamang.
+
+Hurmat bilan, Fan mentori {teacher_name}"""
+        elif status == 'excused':
+            notification_text = f"""🟡 Hurmatli {student_name},
+
+Siz {subject} fanidan {date_str} sanasidagi darsga sababli qatnashmadingiz.{time_text} Darslarni o'zlashtirib oling.
+
+Hurmat bilan, Fan mentori {teacher_name}"""
+        else:
+            return
+            
         send_message_sync(tg_user.telegram_id, notification_text)
-        logger.info(f"Grade notification sent to student {student_id}")
+        logger.info(f"Attendance ({status}) notification sent to student {student_id}")
     except TelegramUser.DoesNotExist:
         logger.warning(f"TelegramUser not found for student {student_id}")
     except Exception as e:
-        logger.error(f"Failed to send grade notification: {e}")
+        logger.error(f"Failed to send attendance notification: {e}")

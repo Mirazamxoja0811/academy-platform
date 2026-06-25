@@ -1775,20 +1775,41 @@ def api_batch_grading(request):
     grades = data.get('grades', [])
     subject = data.get('subject', 'Umumiy')
     saved = 0
+    from telegram_bot.utils import notify_new_grade
+    from datetime import datetime
+    
+    teacher_name = request.user.get_full_name() or request.user.username
+    date_time = datetime.now().strftime('%d.%m.%Y %H:%M')
+    
     for g in grades:
         if g.get('grade') is None:
             continue
         student = Student.objects.get(id=g['student_id'])
-        if not student.groups.filter(teacher=request.user).exists():
+        group = student.groups.filter(teacher=request.user).first()
+        if not group:
             continue
+        
+        subj = g.get('subject')
+        if not subj:
+            subj = group.course.name if group.course else group.name
+            
         Grade.objects.create(
             student=student,
-            subject=g.get('subject') or subject,
+            subject=subj,
             grade=g['grade'],
             teacher=request.user,
             date=date.today(),
         )
         saved += 1
+        # Send telegram notification
+        notify_new_grade(
+            student_id=student.id,
+            subject=subj,
+            grade=g['grade'],
+            teacher_name=teacher_name,
+            date_time=date_time
+        )
+        
     return JsonResponse({"message": f"{saved} ta baho saqlandi", "saved": saved})
 
 
@@ -1805,8 +1826,20 @@ def api_batch_attendance(request):
     attendance_date = data.get('date') or date.today().isoformat()
     records = data.get('records', [])
     saved = 0
+    
+    from telegram_bot.utils import notify_attendance
+    teacher_name = request.user.get_full_name() or request.user.username
+    
+    # Try to parse attendance_date format from YYYY-MM-DD to DD.MM.YYYY
+    try:
+        from datetime import datetime
+        d_obj = datetime.strptime(attendance_date, "%Y-%m-%d")
+        formatted_date = d_obj.strftime("%d.%m.%Y")
+    except:
+        formatted_date = attendance_date
+        
     for record in records:
-        if not record.get('status'):
+        if 'status' not in record:
             continue
         student = Student.objects.get(id=record['student_id'])
         Attendance.objects.update_or_create(
@@ -1820,6 +1853,20 @@ def api_batch_attendance(request):
             },
         )
         saved += 1
+        
+        time_range = ""
+        if group.start_time and group.end_time:
+            time_range = f"{group.start_time.strftime('%H:%M')} - {group.end_time.strftime('%H:%M')}"
+            
+        notify_attendance(
+            student_id=student.id,
+            subject=group.course.name if group.course else group.name,
+            teacher_name=teacher_name,
+            date_str=formatted_date,
+            status=record['status'],
+            time_range=time_range
+        )
+            
     return JsonResponse({"message": f"{saved} ta davomat saqlandi", "saved": saved})
 
 
@@ -1851,10 +1898,11 @@ def api_student_tests(request):
     if not request.user.is_authenticated or request.user.role != 'student':
         return JsonResponse({"detail": "Not authorized"}, status=403)
     student = request.user.student_profile
-    if not student.group:
+    student_groups = student.groups.all()
+    if not student_groups.exists():
         return JsonResponse([], safe=False)
 
-    tests = Test.objects.filter(group=student.group, is_active=True).order_by('-created_at')
+    tests = Test.objects.filter(group__in=student_groups, is_active=True).order_by('-created_at')
     result = []
     for test in tests:
         submission = TestSubmission.objects.filter(test=test, student=student).first()
@@ -1879,7 +1927,10 @@ def api_student_test_detail(request, test_id):
     if not request.user.is_authenticated or request.user.role != 'student':
         return JsonResponse({"detail": "Not authorized"}, status=403)
     student = request.user.student_profile
-    test = Test.objects.get(id=test_id, group=student.group, is_active=True)
+    try:
+        test = Test.objects.get(id=test_id, group__in=student.groups.all(), is_active=True)
+    except Test.DoesNotExist:
+        return JsonResponse({"detail": "Test not found"}, status=404)
     if TestSubmission.objects.filter(test=test, student=student).exists():
         return JsonResponse({"detail": "Test allaqachon topshirilgan"}, status=400)
 
@@ -1911,7 +1962,10 @@ def api_student_test_submit(request, test_id):
     if not request.user.is_authenticated or request.user.role != 'student':
         return JsonResponse({"detail": "Not authorized"}, status=403)
     student = request.user.student_profile
-    test = Test.objects.get(id=test_id, group=student.group, is_active=True)
+    try:
+        test = Test.objects.get(id=test_id, group__in=student.groups.all(), is_active=True)
+    except Test.DoesNotExist:
+        return JsonResponse({"detail": "Test not found"}, status=404)
     if TestSubmission.objects.filter(test=test, student=student).exists():
         return JsonResponse({"detail": "Test allaqachon topshirilgan"}, status=400)
 
@@ -2262,42 +2316,6 @@ def api_student_unenroll_group(request, group_id):
 
 @csrf_exempt
 @require_http_methods(["GET"])
-def api_teacher_history_grades(request):
-    if not request.user.is_authenticated or request.user.role != 'teacher':
-        return JsonResponse({"detail": "Not authorized"}, status=403)
-    grades = Grade.objects.filter(teacher=request.user).select_related('student__user').prefetch_related('student__groups').order_by('-date', '-id')[:50]
-    data = []
-    for g in grades:
-        data.append({
-            "id": g.id,
-            "student_name": _user_display_name(g.student.user),
-            "group_name": ", ".join([grp.name for grp in g.student.groups.all()]) if g.student.groups.exists() else "Guruhsiz",
-            "subject": g.subject,
-            "grade": g.grade,
-            "date": g.date.isoformat() if hasattr(g.date, 'isoformat') else g.date
-        })
-    return JsonResponse(data, safe=False)
-
-@csrf_exempt
-@require_http_methods(["GET"])
-def api_teacher_history_attendance(request):
-    if not request.user.is_authenticated or request.user.role != 'teacher':
-        return JsonResponse({"detail": "Not authorized"}, status=403)
-    attendances = Attendance.objects.filter(teacher=request.user).select_related('student__user', 'group').order_by('-date', '-id')[:50]
-    data = []
-    for a in attendances:
-        data.append({
-            "id": a.id,
-            "student_name": _user_display_name(a.student.user),
-            "group_name": a.group.name if a.group else "",
-            "status": a.status,
-            "date": a.date.isoformat() if hasattr(a.date, 'isoformat') else a.date,
-            "note": a.note
-        })
-    return JsonResponse(data, safe=False)
-
-@csrf_exempt
-@require_http_methods(["GET"])
 def api_teacher_history_coins(request):
     if not request.user.is_authenticated or request.user.role != 'teacher':
         return JsonResponse({"detail": "Not authorized"}, status=403)
@@ -2355,8 +2373,23 @@ def api_group_detail(request, group_id):
         if 'teacher_id' in data:
             teacher = CustomUser.objects.filter(id=data.get('teacher_id')).first()
             if teacher: group.teacher = teacher
+        
+        group.schedule_days = data.get('schedule_days', group.schedule_days)
+        st = data.get('start_time')
+        if st is not None: group.start_time = st if st else None
+        et = data.get('end_time')
+        if et is not None: group.end_time = et if et else None
+        
+        from django.utils.dateparse import parse_date
+        sd = data.get('start_date')
+        if sd: group.start_date = parse_date(sd)
+        
+        if 'status' in data:
+            group.status = data.get('status')
+            
         if 'max_seats' in data:
             group.max_seats = int(data.get('max_seats', group.max_seats))
+            
         group.save()
         return JsonResponse({"message": "Guruh yangilandi"})
 
@@ -2686,13 +2719,31 @@ def api_student_messages_api(request):
         return JsonResponse({"message": "Xabar yuborildi"})
 
 @csrf_exempt
-@require_http_methods(["DELETE"])
+@require_http_methods(["GET", "DELETE"])
 def api_teacher_test_detail(request, test_id):
     if not request.user.is_authenticated or request.user.role != 'teacher':
         return JsonResponse({"detail": "Not authorized"}, status=403)
     test = get_object_or_404(Test, id=test_id, teacher=request.user)
-    test.delete()
-    return JsonResponse({"message": "Test o'chirildi"})
+    
+    if request.method == "GET":
+        submissions = TestSubmission.objects.filter(test=test).select_related('student__user')
+        subs_data = []
+        for s in submissions:
+            subs_data.append({
+                "student_name": s.student.user.get_full_name() or s.student.user.username,
+                "score": s.score,
+                "submitted_at": s.submitted_at.strftime('%Y-%m-%d %H:%M')
+            })
+        return JsonResponse({
+            "id": test.id,
+            "title": test.title,
+            "total_marks": test.total_marks,
+            "submissions": subs_data
+        })
+        
+    elif request.method == "DELETE":
+        test.delete()
+        return JsonResponse({"message": "Test o'chirildi"})
 
 @csrf_exempt
 @require_http_methods(["DELETE", "POST"])
@@ -2704,3 +2755,67 @@ def api_teacher_attendance_clear_old(request):
     cutoff = timezone.now().date() - timedelta(days=30)
     deleted_count, _ = Attendance.objects.filter(group__teacher=request.user, date__lte=cutoff).delete()
     return JsonResponse({"message": f"{deleted_count} ta eski davomat o'chirildi"})
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_teacher_messages_api(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+        
+    messages = StudentMessage.objects.filter(teacher=request.user).order_by('-created_at')
+    msg_list = [{
+        "id": m.id,
+        "student_name": m.student.user.get_full_name() or m.student.user.username,
+        "content": m.content,
+        "created_at": m.created_at.strftime("%Y-%m-%d %H:%M")
+    } for m in messages]
+    
+    return JsonResponse({"messages": msg_list})
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def api_teacher_test_delete(request, test_id):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    try:
+        test = Test.objects.get(id=test_id, teacher=request.user)
+        test.delete()
+        return JsonResponse({"message": "Test o'chirildi"})
+    except Test.DoesNotExist:
+        return JsonResponse({"detail": "Not found"}, status=404)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_teacher_announcement(request):
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({"detail": "Not authorized"}, status=403)
+    data = json.loads(request.body)
+    group_id = data.get('group_id')
+    message = data.get('message')
+    
+    if not group_id or not message:
+        return JsonResponse({"detail": "Missing data"}, status=400)
+        
+    try:
+        group = Group.objects.get(id=group_id, teacher=request.user)
+        
+        from telegram_bot.models import TelegramUser
+        from telegram_bot.utils import send_message_sync
+        
+        # Get all students in this group
+        students = group.students.all()
+        sent_count = 0
+        teacher_name = request.user.get_full_name() or request.user.username
+        
+        for student in students:
+            try:
+                tg_user = TelegramUser.objects.get(user=student.user)
+                text = f"📢 <b>Ustozdan E'lon</b>\n\n<b>Guruh:</b> {group.name}\n<b>Ustoz:</b> {teacher_name}\n\n💬 {message}"
+                send_message_sync(tg_user.telegram_id, text)
+                sent_count += 1
+            except Exception as e:
+                pass
+                
+        return JsonResponse({"message": "E'lon yuborildi", "sent": sent_count})
+    except Group.DoesNotExist:
+        return JsonResponse({"detail": "Guruh topilmadi"}, status=404)
