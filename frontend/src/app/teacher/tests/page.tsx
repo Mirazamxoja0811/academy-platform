@@ -69,6 +69,31 @@ export default function TeacherTests() {
     setQuestions(prev => prev.map((q, i) => i === idx ? { ...q, [field]: value } : q));
   };
 
+  const viewResults = async (testId: number) => {
+    try {
+      const res = await fetch(`/api/teacher/tests/${testId}/`, { credentials: "include" });
+      const data = await res.json();
+      setResultsTest(data);
+      setShowResults(true);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteTest = async (testId: number) => {
+    if (!confirm("Haqiqatan ham bu testni o'chirib tashlamoqchimisiz?")) return;
+    try {
+      const res = await fetch(`/api/teacher/tests/${testId}/delete/`, { method: 'DELETE', credentials: 'include' });
+      if (res.ok) {
+        setToast("Test muvaffaqiyatli o'chirildi");
+        load();
+        setTimeout(() => setToast(''), 3000);
+      }
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.group_id || !form.title) return;

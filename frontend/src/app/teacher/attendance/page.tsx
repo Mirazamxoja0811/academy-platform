@@ -16,35 +16,24 @@ export default function TeacherAttendance() {
       const res = await fetch('/api/teacher/attendance/clear-old/', { method: 'DELETE', credentials: "include" });
       const data = await res.json();
       alert(data.message || "Tozalandi");
-      fetchHistory();
     } catch (e) {
       alert("Xatolik yuz berdi");
     }
   };
 
-
-  const fetchHistory = () => {
-    fetch("/api/teacher/history/attendance/", { credentials: "include",  credentials: "include" })
-      .then(r => r.json())
-      .then(data => setHistory(data))
-      .catch(e => console.error(e));
-  };
-
   useEffect(() => {
-    fetch("/api/students/", { credentials: "include",  credentials: "include" })
+    fetch("/api/students/", { credentials: "include" })
       .then(r => r.json())
       .then(data => setStudents(data.map((s: any) => ({ ...s, status: null, note: "" }))))
       .catch(e => console.error(e));
 
-    fetch("/api/groups/", { credentials: "include",  credentials: "include" })
+    fetch("/api/groups/", { credentials: "include" })
       .then(r => r.json())
       .then(data => {
         setGroups(data);
         if (data.length > 0) setSelectedGroup(String(data[0].id));
       })
       .catch(e => console.error(e));
-
-    fetchHistory();
   }, []);
 
   const filteredStudents = selectedGroup
@@ -85,15 +74,6 @@ export default function TeacherAttendance() {
         setTimeout(() => setShowToast(false), 3000);
         setStudents(students.map(s => ({ ...s, status: null, note: "" })));
         setEditingNote(null);
-        fetchHistory();
-      });
-  };
-
-  const deleteAttendance = (id: number) => {
-    if(!confirm("Bu yo'qlamani o'chirishni xohlaysizmi?")) return;
-    fetch(`/api/attendance/${id}/delete/`, { credentials: "include",  method: "POST" })
-      .then(res => {
-        if(res.ok) fetchHistory();
       });
   };
 
@@ -106,16 +86,13 @@ export default function TeacherAttendance() {
             <p className="text-slate-400 mt-2 text-sm">Guruhlar bo'yicha yo'qlama qilish</p>
           </div>
           <div className="flex gap-4">
-            <button onClick={handleClearOld} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold py-2 px-4 rounded-xl border border-rose-500/30 transition-colors">
-              1 Oylik tozalash
-            </button>
             <select
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}
-              className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl focus:outline-none"
+              className="bg-white/10 border border-white/20 text-black px-4 py-2 rounded-xl focus:outline-none"
             >
               {groups.map((g) => (
-                <option key={g.id} className="text-black" value={g.id}>{g.name}</option>
+                <option key={g.id} className="bg-slate-900 text-white" value={g.id}>{g.name}</option>
               ))}
             </select>
             <button
@@ -182,54 +159,6 @@ export default function TeacherAttendance() {
           {filteredStudents.length === 0 && (
             <p className="text-center py-8 text-slate-500">Guruhda o'quvchi yo'q</p>
           )}
-        </div>
-
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl mt-8">
-          <h2 className="text-xl font-bold text-white mb-6">Tarix (Oxirgi yo'qlamalar)</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="text-slate-400 border-b border-white/10">
-                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">O'quvchi</th>
-                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Guruh</th>
-                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Status</th>
-                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Izoh</th>
-                  <th className="pb-4 font-medium uppercase text-xs tracking-wider">Sana</th>
-                  <th className="pb-4 font-medium uppercase text-xs tracking-wider text-right">Amal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((h, i) => (
-                  <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="py-4 text-white">{h.student_name}</td>
-                    <td className="py-4 text-slate-400">{h.group_name}</td>
-                    <td className="py-4">
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${
-                        h.status === 'present' ? 'bg-emerald-500/20 text-emerald-400' :
-                        h.status === 'absent' ? 'bg-rose-500/20 text-rose-400' :
-                        h.status === 'late' ? 'bg-amber-500/20 text-amber-400' :
-                        'bg-blue-500/20 text-blue-400'
-                      }`}>
-                        {h.status === 'present' ? 'Kelgan' : h.status === 'absent' ? "Kelmagan" : h.status === 'late' ? "Kech qolgan" : "Sababli"}
-                      </span>
-                    </td>
-                    <td className="py-4 text-slate-400">{h.note || '-'}</td>
-                    <td className="py-4 text-slate-400">{new Date(h.date).toLocaleDateString()}</td>
-                    <td className="py-4 text-right">
-                      <button onClick={() => deleteAttendance(h.id)} className="text-red-400 hover:text-red-300 transition-colors text-sm font-medium">
-                        🗑 O'chirish
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {history.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-slate-500">Tarix bo'sh</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
       </motion.div>
 

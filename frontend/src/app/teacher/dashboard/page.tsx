@@ -50,6 +50,7 @@ export default function TeacherDashboard() {
     passive_students: [],
     active_students: []
   });
+  const [recentMsgs, setRecentMsgs] = useState<{id:number, student_name:string, content:string, created_at:string}[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -57,9 +58,13 @@ export default function TeacherDashboard() {
       .then(res => res.json())
       .then(user => setData(prev => ({...prev, full_name: user.full_name})));
 
-    fetch('/api/teacher/dashboard/stats/', { credentials: "include",  credentials: "include" })
+    fetch('/api/teacher/dashboard/stats/', { credentials: "include" })
       .then(res => res.json())
       .then(d => setData(prev => ({...prev, ...d})));
+
+    fetch('/api/teacher/messages/', { credentials: "include" })
+      .then(res => res.json())
+      .then(d => setRecentMsgs((d.messages || []).slice(0, 5)));
   }, []);
 
   const stats = [
@@ -96,7 +101,76 @@ export default function TeacherDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Groups List */}
+                {/* Right Column */}
+        <div className="space-y-6">
+          
+          {/* Recent Messages */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.35 }}
+            className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-6 rounded-[2rem]"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-purple-400" /> Oxirgi Xabarlar
+              </h3>
+              <button onClick={() => router.push('/teacher/messages')} className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors">
+                Barchasini ko'rish
+              </button>
+            </div>
+            <div className="space-y-3">
+              {recentMsgs.length === 0 ? (
+                <p className="text-slate-500 text-center py-4">Hali xabar kelmagan</p>
+              ) : (
+                recentMsgs.map((msg) => (
+                  <div key={msg.id} className="p-4 rounded-2xl border border-slate-800 bg-slate-950/50 hover:bg-slate-800/50 transition-colors">
+                    <div className="flex justify-between items-start">
+                      <span className="text-white font-semibold text-sm">{msg.student_name}</span>
+                      <span className="text-xs text-slate-500">{msg.created_at}</span>
+                    </div>
+                    <p className="text-slate-400 text-sm mt-1 line-clamp-2">{msg.content}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+
+          {/* Active Students */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+            className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-6 rounded-[2rem]"
+          >
+            <h3 className="text-xl font-bold text-white mb-6">Eng faol 3 ta o'quvchi</h3>
+            <div className="space-y-4">
+              {data.active_students?.map((student, index) => (
+                <div key={index} className="flex gap-4 p-4 rounded-2xl border border-slate-800 bg-slate-950/50 hover:bg-slate-800/50 transition-colors">
+                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 h-fit flex items-center justify-center font-bold w-10 h-10">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-white font-medium">{student.name}</h4>
+                    <div className="flex items-center gap-4 mt-1">
+                      <p className="text-sm text-slate-400">O'rtacha baho: <span className="text-emerald-400 font-bold">{student.avg}</span></p>
+                      <p className="text-sm text-slate-400 flex items-center gap-1">
+                        <Coins className="w-3 h-3 text-yellow-400" /> <span className="text-yellow-400 font-bold">{student.coins}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!data.active_students || data.active_students.length === 0) && (
+                <p className="text-slate-500 text-center py-4">Faol o'quvchilar yo'q</p>
+              )}
+            </div>
+          </motion.div>
+
+
+          
+        </div>
+{/* Groups List */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -138,67 +212,6 @@ export default function TeacherDashboard() {
           </div>
         </motion.div>
 
-        {/* Right Column */}
-        <div className="space-y-6">
-          
-          {/* Active Students */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4 }}
-            className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-6 rounded-[2rem]"
-          >
-            <h3 className="text-xl font-bold text-white mb-6">Eng faol 3 ta o'quvchi</h3>
-            <div className="space-y-4">
-              {data.active_students?.map((student, index) => (
-                <div key={index} className="flex gap-4 p-4 rounded-2xl border border-slate-800 bg-slate-950/50 hover:bg-slate-800/50 transition-colors">
-                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 h-fit flex items-center justify-center font-bold w-10 h-10">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-white font-medium">{student.name}</h4>
-                    <div className="flex items-center gap-4 mt-1">
-                      <p className="text-sm text-slate-400">O'rtacha baho: <span className="text-emerald-400 font-bold">{student.avg}</span></p>
-                      <p className="text-sm text-slate-400 flex items-center gap-1">
-                        <Coins className="w-3 h-3 text-yellow-400" /> <span className="text-yellow-400 font-bold">{student.coins}</span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {(!data.active_students || data.active_students.length === 0) && (
-                <p className="text-slate-500 text-center py-4">Faol o'quvchilar yo'q</p>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Passive Students */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }}
-            className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-6 rounded-[2rem]"
-          >
-            <h3 className="text-xl font-bold text-white mb-6">Passiv o'quvchilar</h3>
-            <div className="space-y-4">
-              {data.passive_students?.map((student, index) => (
-                <div key={index} className="flex gap-4 p-4 rounded-2xl border border-slate-800 bg-slate-950/50 hover:bg-slate-800/50 transition-colors">
-                  <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500 h-fit">
-                    <AlertTriangle className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-medium">{student.name}</h4>
-                    <p className="text-sm text-slate-400 mt-1">O'rtacha baho: <span className="text-rose-400 font-bold">{student.avg}</span></p>
-                  </div>
-                </div>
-              ))}
-              {(!data.passive_students || data.passive_students.length === 0) && (
-                <p className="text-slate-500 text-center py-4">Passiv o'quvchilar yo'q</p>
-              )}
-            </div>
-          </motion.div>
-          
-        </div>
       </div>
     </div>
   );

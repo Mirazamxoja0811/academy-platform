@@ -4,12 +4,13 @@ import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { LayoutDashboard, CheckSquare, Calendar, Coins, ClipboardList, Settings, LogOut, MessageSquare } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Calendar, Coins, ClipboardList, Settings, LogOut, MessageSquare, Menu, X } from "lucide-react";
 import DashboardClock from "@/components/DashboardClock";
 
 export default function StudentLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<{full_name: string, role: string} | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/me/', { credentials: "include",  credentials: "include" })
@@ -45,13 +46,26 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
         <div className="absolute bottom-[10%] -right-[10%] w-[40%] h-[60%] rounded-full bg-purple-900/20 blur-[120px]"></div>
       </div>
 
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-72 bg-slate-900/50 backdrop-blur-xl border-r border-slate-800/50 flex flex-col z-10 relative">
-        <div className="p-8">
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            Academy
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">O'quvchi Paneli</p>
+      <aside className={`fixed inset-y-0 left-0 w-72 bg-slate-900/90 backdrop-blur-xl border-r border-slate-800/50 flex flex-col z-50 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 md:p-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              Academy
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">O'quvchi Paneli</p>
+          </div>
+          <button className="md:hidden text-slate-400 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
         <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
@@ -59,7 +73,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
             const isActive = pathname === item.path || pathname === item.path + '/';
             const Icon = item.icon;
             return (
-              <Link key={item.path} href={item.path}>
+              <Link key={item.path} href={item.path} onClick={() => setIsMobileMenuOpen(false)}>
                 <motion.div
                   whileHover={{ scale: 1.02, x: 5 }}
                   whileTap={{ scale: 0.98 }}
@@ -101,11 +115,19 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden z-10 relative">
-        <header className="h-20 bg-slate-900/30 backdrop-blur-md border-b border-slate-800/50 flex items-center justify-between px-10 sticky top-0 z-20">
-          <h2 className="text-xl font-semibold text-white">
-            {menuItems.find(i => pathname.includes(i.path))?.name || "O'quvchi Paneli"}
-          </h2>
+      <main className="flex-1 flex flex-col h-[100dvh] overflow-hidden z-10 relative w-full">
+        <header className="h-16 md:h-20 bg-slate-900/50 backdrop-blur-md border-b border-slate-800/50 flex items-center justify-between px-4 md:px-10 sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <button 
+              className="md:hidden p-2 -ml-2 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/50 transition-colors"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h2 className="text-lg md:text-xl font-semibold text-white truncate">
+              {menuItems.find(i => pathname.includes(i.path))?.name || "O'quvchi Paneli"}
+            </h2>
+          </div>
           {user && (
             <div className="flex items-center gap-4">
               <div className="text-right hidden sm:block">
@@ -123,7 +145,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
           )}
         </header>
 
-        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 md:p-10 custom-scrollbar">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
