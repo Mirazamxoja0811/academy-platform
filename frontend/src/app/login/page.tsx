@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -47,10 +49,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
         <div className="absolute top-[10%] left-[20%] w-72 h-72 bg-blue-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20"></div>
         <div className="absolute bottom-[10%] right-[20%] w-80 h-80 bg-purple-500 rounded-full mix-blend-screen filter blur-[120px] opacity-20"></div>
+      </div>
+
+      <div className="w-full max-w-md mb-4 flex justify-start">
+        <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/40 hover:bg-slate-800/80 backdrop-blur-md border border-slate-700/50 rounded-xl text-slate-300 hover:text-white transition-all text-sm font-medium">
+          <ArrowLeft className="w-4 h-4" /> Bosh sahifaga qaytish
+        </Link>
       </div>
 
       <motion.div 
