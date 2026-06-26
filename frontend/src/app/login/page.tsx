@@ -25,7 +25,14 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        setError(`Server xatosi: ${res.status} ${res.statusText}`);
+        setLoading(false);
+        return;
+      }
 
       if (res.ok) {
         if (data.role === "student") {
@@ -42,7 +49,7 @@ export default function LoginPage() {
         setError(data.detail || "Login yoki parol noto'g'ri");
       }
     } catch (err) {
-      setError("Tarmoq xatosi. Server ishlayotganiga ishonch hosil qiling.");
+      setError("Tarmoq xatosi. Sizda yoki serverda muammo mavjud (CORS yoki Server o'chgan).");
     } finally {
       setLoading(false);
     }
