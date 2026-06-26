@@ -18,10 +18,11 @@ class CustomUser(Base):
     is_active = Column(Boolean, default=True)
     date_joined = Column(DateTime(timezone=True), default=datetime.utcnow)
     
-    role = Column(String(10), default='student')
+    role = Column(String(20), default='student')
     phone = Column(String(20), nullable=True)
     avatar = Column(String(100), nullable=True)
     date_of_birth = Column(Date, nullable=True)
+    telegram_id = Column(String(100), nullable=True, unique=True)
     
     student_profile = relationship("Student", back_populates="user", uselist=False)
 
